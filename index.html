@@ -33,7 +33,6 @@
         .hero h1 { font-size: 2.5rem; background: linear-gradient(135deg, #fff, #b9fbc0, #2dd4bf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .hero .sub { font-size: 1rem; color: #b6e6e0; margin-top: 0.5rem; }
         .experts-rank { background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); border-radius: 1.5rem; padding: 1rem; margin-bottom: 2rem; border: 1px solid rgba(45,212,191,0.4); overflow-x: auto; }
-        .experts-rank h3 { margin-bottom: 0.8rem; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
         .rank-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         .rank-table th, .rank-table td { padding: 0.6rem 0.3rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .rank-table th { background: rgba(45,212,191,0.25); font-weight: 700; }
@@ -45,7 +44,6 @@
         .filter-btn { background: rgba(20,35,33,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(72,187,160,0.4); padding: 0.5rem 1.2rem; border-radius: 60px; font-weight: 600; font-size: 0.85rem; color: #e2f2ef; cursor: pointer; }
         .filter-btn.active { background: #2dd4bf; color: #05100f; }
         .standings { background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); border-radius: 1.5rem; padding: 1rem; margin-bottom: 2rem; overflow-x: auto; border: 1px solid rgba(45,212,191,0.3); }
-        .standings h3 { margin-bottom: 0.8rem; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
         .standings table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
         .standings th, .standings td { padding: 0.5rem 0.3rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .matches-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem; }
@@ -60,6 +58,7 @@
         .forecast-title { font-size: 0.65rem; margin: 0.3rem 1rem; color: #8dcfc6; }
         .experts-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.3rem 1rem 1rem; justify-content: space-between; }
         .expert-pred { background: #0c1f1c; border-radius: 1rem; flex: 1; text-align: center; padding: 0.3rem; font-size: 0.7rem; }
+        .debug { background: #1e2f2c; color: #ffaa33; padding: 0.5rem; margin: 1rem 0; border-radius: 1rem; font-family: monospace; white-space: pre-wrap; }
         .bottom-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; justify-content: center; gap: 1rem; padding: 0.6rem; border-top: 1px solid #2dd4bf; z-index: 100; }
         .bottom-btn { background: #ffaa33; border: none; padding: 0.4rem 1.2rem; border-radius: 60px; font-weight: 600; font-size: 0.8rem; color: #05100f; cursor: pointer; }
         .footer-note { text-align: center; margin-top: 2rem; font-size: 0.7rem; opacity: 0.6; margin-bottom: 3rem; }
@@ -70,8 +69,9 @@
 <div class="app">
     <div class="hero">
         <h1><i class="fas fa-futbol"></i> ЧМ 2026 · Рейтинг экспертов</h1>
-        <div class="sub">Данные из XLSX-файла (WCF2026.xlsx)</div>
+        <div class="sub">Загрузка данных из WCF2026.xlsx (с автоматическим определением колонок)</div>
     </div>
+    <div id="debugPanel" class="debug"></div>
     <div id="expertsRankContainer" class="experts-rank"></div>
     <div class="filter-bar" id="filterBar"></div>
     <div id="standingsContainer" class="standings"></div>
@@ -89,37 +89,47 @@
     let currentGroup = 'all';
 
     async function loadFromXLSX() {
+        const debugDiv = document.getElementById('debugPanel');
+        debugDiv.innerHTML = 'Загрузка файла...';
         try {
-            console.log('Загрузка файла:', XLSX_FILE);
             const response = await fetch(XLSX_FILE);
-            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден или недоступен`);
             const arrayBuffer = await response.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-            console.log('Всего строк в листе:', rows.length);
+            debugDiv.innerHTML += `\nФайл прочитан. Всего строк: ${rows.length}`;
 
-            if (rows.length < 3) throw new Error('Недостаточно строк');
+            if (rows.length < 3) throw new Error('Недостаточно строк (меньше 3)');
 
-            // Определяем строку с заголовками (ищем непустую строку с "Гр." или "Группа")
+            // Ищем строку с заголовками: она может быть не первой, ищем по ключевым словам
             let headerRow = null;
             let dataStart = 0;
-            for (let i = 0; i < Math.min(rows.length, 10); i++) {
+            for (let i = 0; i < Math.min(rows.length, 15); i++) {
                 const row = rows[i];
                 if (row && row.some(cell => {
                     const s = (cell || '').toString().toLowerCase();
-                    return s.includes('гр.') || s.includes('групп') || s === 'a' || s === 'b';
+                    return s.includes('гр.') || s.includes('групп') || s === 'a' || s === 'b' || s === 'c';
                 })) {
                     headerRow = row;
                     dataStart = i + 1;
                     break;
                 }
             }
-            if (!headerRow) throw new Error('Не найдена строка заголовков');
+            if (!headerRow) {
+                // если не нашли, берём первую непустую строку как заголовок
+                for (let i = 0; i < rows.length; i++) {
+                    if (rows[i] && rows[i].length > 0 && rows[i].some(c => c && c.toString().trim())) {
+                        headerRow = rows[i];
+                        dataStart = i + 1;
+                        break;
+                    }
+                }
+            }
+            if (!headerRow) throw new Error('Не удалось найти строку с заголовками');
+            debugDiv.innerHTML += `\nЗаголовки: ${headerRow.join(' | ')}`;
 
-            console.log('Заголовки:', headerRow);
-
-            // Поиск колонок
+            // Функция поиска индекса колонки по возможным названиям
             function findCol(keywords) {
                 for (let i = 0; i < headerRow.length; i++) {
                     const cell = (headerRow[i] || '').toString().toLowerCase();
@@ -128,19 +138,27 @@
                 return -1;
             }
 
-            const groupCol = findCol(['гр.', 'групп', 'group']);
+            const groupCol = findCol(['гр.', 'групп', 'группа', 'group']);
             const dateCol = findCol(['дата', 'date']);
             const timeCol = findCol(['время', 'time']);
-            const homeCol = findCol(['хозяева', 'хозя', 'home']);
-            const awayCol = findCol(['гости', 'гост', 'away']);
-            const scoreHomeCol = findCol(['счет хозяев', 'счёт хозяев', 'home score', 'счёт хозя']);
-            const scoreAwayCol = findCol(['счет гостей', 'счёт гостей', 'away score', 'счёт гост']);
+            const homeCol = findCol(['хозяева', 'хозя', 'home', 'команда1']);
+            const awayCol = findCol(['гости', 'гост', 'away', 'команда2']);
+            const scoreHomeCol = findCol(['счет хозяев', 'счёт хозяев', 'home score', 'счёт хозя', 'счет хозя']);
+            const scoreAwayCol = findCol(['счет гостей', 'счёт гостей', 'away score', 'счёт гост', 'счет гост']);
 
-            console.log('Индексы:', { groupCol, dateCol, timeCol, homeCol, awayCol, scoreHomeCol, scoreAwayCol });
+            debugDiv.innerHTML += `\n\nНайденные колонки:
+            - группа: ${groupCol !== -1 ? `индекс ${groupCol} (${headerRow[groupCol]})` : '❌ не найдена'}
+            - дата: ${dateCol !== -1 ? `индекс ${dateCol} (${headerRow[dateCol]})` : '❌ не найдена'}
+            - время: ${timeCol !== -1 ? `индекс ${timeCol} (${headerRow[timeCol]})` : '❌ не найдена'}
+            - хозяева: ${homeCol !== -1 ? `индекс ${homeCol} (${headerRow[homeCol]})` : '❌ не найдена'}
+            - гости: ${awayCol !== -1 ? `индекс ${awayCol} (${headerRow[awayCol]})` : '❌ не найдена'}
+            - счёт хозяев: ${scoreHomeCol !== -1 ? `индекс ${scoreHomeCol} (${headerRow[scoreHomeCol]})` : '❌ не найдена'}
+            - счёт гостей: ${scoreAwayCol !== -1 ? `индекс ${scoreAwayCol} (${headerRow[scoreAwayCol]})` : '❌ не найдена'}`;
 
-            // Эксперты
+            // Эксперты (имена)
             const expertNames = ['антон', 'георгий', 'герман', 'олег', 'тимур', 'юрий'];
-            let expertHomeCols = [], expertAwayCols = [];
+            let expertHomeCols = [];
+            let expertAwayCols = [];
             for (let name of expertNames) {
                 let hIdx = -1, aIdx = -1;
                 for (let i = 0; i < headerRow.length; i++) {
@@ -151,12 +169,12 @@
                     }
                 }
                 if (hIdx === -1 && aIdx === -1) {
-                    // ищем одну колонку с именем
+                    // одна колонка
                     for (let i = 0; i < headerRow.length; i++) {
                         const cell = (headerRow[i] || '').toString().toLowerCase();
-                        if (cell === name || cell.includes(name)) {
+                        if (cell === name || (cell.includes(name) && (cell.includes('прогноз') || cell.includes('pred')))) {
                             hIdx = i;
-                            aIdx = -2; // маркер одиночной
+                            aIdx = -2;
                             break;
                         }
                     }
@@ -165,8 +183,8 @@
                 expertAwayCols.push(aIdx);
             }
             experts = expertNames.map(n => n.charAt(0).toUpperCase() + n.slice(1));
-            console.log('Эксперты:', experts);
-            console.log('Колонки экспертов (home/away):', expertHomeCols, expertAwayCols);
+            debugDiv.innerHTML += `\n\nЭксперты: ${experts.join(', ')}`;
+            debugDiv.innerHTML += `\nКолонки экспертов (home/away): ${expertHomeCols.map((v,i) => `${experts[i]}: ${v} / ${expertAwayCols[i]}`).join(', ')}`;
 
             // Сбор данных
             matches = [];
@@ -174,7 +192,7 @@
                 const row = rows[i];
                 if (!row || row.length === 0) continue;
                 const group = groupCol !== -1 ? (row[groupCol] || '').toString().trim() : '';
-                if (group === '') continue;
+                if (group === '') continue; // пустая строка
                 const dateRaw = dateCol !== -1 ? row[dateCol] : '';
                 let date = '';
                 if (dateRaw && typeof dateRaw === 'number') {
@@ -192,31 +210,30 @@
                     const a = parseInt(row[scoreAwayCol]);
                     if (!isNaN(h) && !isNaN(a)) score = `${h}:${a}`;
                 }
-                // Прогнозы
-                let predictions = [];
+                const predictions = [];
                 for (let e = 0; e < experts.length; e++) {
-                    let predStr = '';
+                    let pred = '';
                     if (expertHomeCols[e] !== -1 && expertAwayCols[e] === -2) {
-                        predStr = (row[expertHomeCols[e]] || '').toString().trim();
+                        pred = (row[expertHomeCols[e]] || '').toString().trim();
                     } else if (expertHomeCols[e] !== -1 && expertAwayCols[e] !== -1 && expertAwayCols[e] !== -2) {
-                        const hVal = parseInt(row[expertHomeCols[e]]);
-                        const aVal = parseInt(row[expertAwayCols[e]]);
-                        if (!isNaN(hVal) && !isNaN(aVal)) predStr = `${hVal}:${aVal}`;
+                        const h = parseInt(row[expertHomeCols[e]]);
+                        const a = parseInt(row[expertAwayCols[e]]);
+                        if (!isNaN(h) && !isNaN(a)) pred = `${h}:${a}`;
                     }
-                    predictions.push(predStr || '—');
+                    predictions.push(pred || '—');
                 }
                 matches.push({ group, date, time, home, away, score, predictions });
             }
-            console.log(`Загружено матчей: ${matches.length}`);
-            if (matches.length === 0) throw new Error('Не найдено строк с данными');
+            debugDiv.innerHTML += `\n\nЗагружено матчей: ${matches.length}`;
+            if (matches.length === 0) throw new Error('Не найдено строк с данными (нет заполненных групп)');
 
             buildFilterButtons();
             renderExpertsRank();
             renderStandings(currentGroup);
             renderMatches(currentGroup);
         } catch (err) {
-            console.error('Ошибка:', err);
-            document.getElementById('matchesContainer').innerHTML = `<div style="text-align:center; padding:2rem;">❌ Ошибка: ${err.message}<br>Проверьте консоль (F12) для деталей.</div>`;
+            debugDiv.innerHTML += `\n\n❌ ОШИБКА: ${err.message}\nПроверьте консоль браузера (F12).`;
+            console.error(err);
         }
     }
 
@@ -275,7 +292,7 @@
             html += `<tr class="${medal}"><td>${idx+1}</td><td class="expert-name">${s.name}</td>
                      <td><strong>${s.points}</strong></td><td>${s.exact}</td><td>${s.diff}</td><td>${s.outcome}</td></tr>`;
         });
-        html += `</tbody></tr></div>`;
+        html += `</tbody></table></div>`;
         document.getElementById('expertsRankContainer').innerHTML = html;
     }
 
@@ -301,8 +318,9 @@
             <table><thead><tr><th>Команда</th><th>И</th><th>В</th><th>Н</th><th>П</th><th>З</th><th>П</th><th>О</th></tr></thead><tbody>`;
         table.forEach(t => {
             html += `<tr><td class="team-name">${t.name}</td>
-                      <td>${t.played} <td>${t.wins} <td>${t.draws} <td>${t.losses}
-                      <td>${t.gf} <td>${t.ga} <td><strong>${t.points}</strong></tr>`;
+                      <td>${t.played}</td><td>${t.wins}</td><td>${t.draws}</td><td>${t.losses}</td>
+                       <td>${t.gf}</td><td>${t.ga}</td><td><strong>${t.points}</strong></td>
+                    </table>`;
         });
         html += `</tbody></table></div>`;
         document.getElementById('standingsContainer').innerHTML = html;
