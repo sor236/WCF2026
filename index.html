@@ -41,9 +41,8 @@
 <body>
 <div class="container">
     <h1>⚽ ЧМ 2026 · Рейтинг экспертов</h1>
-    <div class="sub">Данные из WCF2026.csv (фиксированные колонки)</div>
+    <div class="sub">Данные из WCF2026.csv (фиксированные индексы по вашему описанию)</div>
     <div id="debug" class="debug">Загрузка...</div>
-    <div id="expertRank" class="standings"></div>
     <div id="filterBar" class="filter-bar"></div>
     <div id="standings"></div>
     <div id="matches" class="matches-grid"></div>
@@ -58,19 +57,27 @@
     let groupsSet = new Set();
     let currentGroup = 'all';
 
-    // Индексы колонок (0-based)
-    const IDX_NUM = 0;      // номер матча
-    const IDX_GROUP = 1;    // группа
-    const IDX_TIME = 2;     // время
-    const IDX_DATE = 3;     // дата
-    const IDX_HOME = 4;     // хозяева
-    const IDX_AWAY = 5;     // гости
-    const IDX_SCORE_H = 6;  // счёт хозяев
-    const IDX_SCORE_A = 7;  // счёт гостей
-    const IDX_EXP_START = 10; // начало прогнозов (Антон хозяева, Антон гости, ...)
-
-    const EXPERT_NAMES = ['Антон', 'Георгий', 'Герман', 'Олег', 'Тимур', 'Юрий'];
-    const EXPERT_PAIR_COUNT = 6;
+    // Индексы согласно вашему описанию (начиная с 0)
+    const idx = {
+        matchNum: 0,    // номер матча (игнорируем)
+        group: 1,
+        time: 2,
+        date: 3,
+        home: 4,
+        away: 5,
+        scoreHome: 6,
+        scoreAway: 7,
+        expertStart: 10   // Антон хозяева
+    };
+    const expertNames = ['Антон', 'Георгий', 'Герман', 'Олег', 'Тимур', 'Юрий'];
+    // Для каждого эксперта: индексы голосов (home, away)
+    const expertIndices = [];
+    for (let i = 0; i < expertNames.length; i++) {
+        expertIndices.push({
+            homeIdx: idx.expertStart + i*2,
+            awayIdx: idx.expertStart + i*2 + 1
+        });
+    }
 
     async function loadCSV() {
         const debugDiv = document.getElementById('debug');
@@ -82,42 +89,33 @@
             const lines = text.split(/\r?\n/);
             debugDiv.innerHTML += `\n✅ Прочитано строк: ${lines.length}`;
 
-            // Ищем первую строку, где в колонке IDX_GROUP (индекс 1) есть буква A-L
-            let startRow = -1;
-            for (let i = 0; i < lines.length; i++) {
-                const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
-                if (cols.length > IDX_GROUP) {
-                    const groupVal = cols[IDX_GROUP];
-                    if (/^[A-L]$/i.test(groupVal)) {
-                        startRow = i;
-                        break;
-                    }
-                }
-            }
-            if (startRow === -1) throw new Error('Не найдена строка с группой (A, B, C...)');
-
             matches = [];
-            for (let i = startRow; i < lines.length; i++) {
-                const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
-                if (cols.length <= IDX_SCORE_A) continue;
-                const group = cols[IDX_GROUP];
-                if (!/^[A-L]$/i.test(group)) continue; // только строки с группой
-                const time = cols[IDX_TIME] || '';
-                let date = cols[IDX_DATE] || '';
-                if (date.includes('T')) date = date.split('T')[0];
-                const home = cols[IDX_HOME] || '';
-                const away = cols[IDX_AWAY] || '';
-                let score = null;
-                const homeScore = parseInt(cols[IDX_SCORE_H]);
-                const awayScore = parseInt(cols[IDX_SCORE_A]);
-                if (!isNaN(homeScore) && !isNaN(awayScore)) score = `${homeScore}:${awayScore}`;
+            let dataRows = 0;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line === '') continue;
+                const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                if (cols.length <= idx.group) continue;
+                const group = cols[idx.group];
+                // Проверяем, что группа — это буква от A до L
+                if (!/^[A-L]$/i.test(group)) continue;
 
+                const time = cols[idx.time] || '';
+                let date = cols[idx.date] || '';
+                if (date.includes('T')) date = date.split('T')[0];
+                const home = cols[idx.home] || '';
+                const away = cols[idx.away] || '';
+                let score = null;
+                const homeScore = parseInt(cols[idx.scoreHome]);
+                const awayScore = parseInt(cols[idx.scoreAway]);
+                if (!isNaN(homeScore) && !isNaN(awayScore)) score = `${homeScore}:${awayScore}`;
+                
                 const predictions = [];
-                for (let e = 0; e < EXPERT_NAMES.length; e++) {
-                    const hIdx = IDX_EXP_START + e * 2;
-                    const aIdx = hIdx + 1;
+                for (let e = 0; e < expertNames.length; e++) {
+                    const hIdx = expertIndices[e].homeIdx;
+                    const aIdx = expertIndices[e].awayIdx;
                     let pred = '';
-                    if (cols.length > aIdx) {
+                    if (cols.length > hIdx && cols.length > aIdx) {
                         const h = parseInt(cols[hIdx]);
                         const a = parseInt(cols[aIdx]);
                         if (!isNaN(h) && !isNaN(a)) pred = `${h}:${a}`;
@@ -126,14 +124,18 @@
                 }
                 matches.push({ group, date, time, home, away, score, predictions });
                 groupsSet.add(group);
+                dataRows++;
             }
+            debugDiv.innerHTML += `\n📋 Найдено строк с данными: ${dataRows}`;
+            if (matches.length === 0) throw new Error('Не найдено ни одной строки с корректной группой (A-L). Проверьте CSV.');
 
-            debugDiv.innerHTML += `\n📋 Загружено матчей: ${matches.length}`;
-            if (matches.length === 0) throw new Error('Нет данных после обработки');
+            // Выводим первые 3 матча для отладки в консоль
+            console.log('Первые 3 матча:', matches.slice(0, 3));
+
             buildFilters();
             renderAll();
         } catch (err) {
-            debugDiv.innerHTML += `\n❌ Ошибка: ${err.message}\nПроверьте, что файл WCF2026.csv загружен в корень репозитория и соответствует структуре (колонки: номер, группа, время, дата, хозяева, гости, счёт хозяев, счёт гостей, ... прогнозы парами с 10-й колонки).`;
+            debugDiv.innerHTML += `\n❌ Ошибка: ${err.message}\nПроверьте, что файл WCF2026.csv загружен в корень репозитория и имеет правильную структуру (первая колонка с данными — группа).`;
             console.error(err);
         }
     }
@@ -141,6 +143,7 @@
     function buildFilters() {
         const groups = Array.from(groupsSet).sort();
         const container = document.getElementById('filterBar');
+        if (groups.length === 0) return;
         container.innerHTML = `<button class="filter-btn active" data-group="all">🌍 Все группы</button>` +
             groups.map(g => `<button class="filter-btn" data-group="${g}">Группа ${g}</button>`).join('');
         document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -154,12 +157,12 @@
     }
 
     function computeExpertStats() {
-        let stats = EXPERT_NAMES.map(name => ({ name, points: 0, exact: 0, diff: 0, outcome: 0 }));
+        let stats = expertNames.map(name => ({ name, points: 0, exact: 0, diff: 0, outcome: 0 }));
         for (let m of matches) {
             if (!m.score) continue;
             const [realHome, realAway] = m.score.split(':').map(Number);
             if (isNaN(realHome) || isNaN(realAway)) continue;
-            for (let i = 0; i < EXPERT_NAMES.length; i++) {
+            for (let i = 0; i < expertNames.length; i++) {
                 const predStr = m.predictions[i];
                 if (!predStr || predStr === '—') continue;
                 const [predHome, predAway] = predStr.split(':').map(Number);
@@ -182,12 +185,12 @@
 
     function renderExpertRanking() {
         const stats = computeExpertStats();
-        let html = `<h3>🏆 Рейтинг экспертов (3 — точный счёт, 2 — разница, 1 — исход)</h3>
+        let html = `<div class="standings"><h3>🏆 Рейтинг экспертов (3 — точный счёт, 2 — разница, 1 — исход)</h3>
             <table><thead><tr><th>Место</th><th>Эксперт</th><th>Очки</th><th>Точных<br>счетов</th><th>Разниц<br>(2 очка)</th><th>Исходов<br>(1 очко)</th></tr></thead><tbody>`;
         stats.forEach((s, idx) => {
             html += `<tr><td>${idx+1}</td><td><b>${s.name}</b></td><td>${s.points}</td><td>${s.exact}</td><td>${s.diff}</td><td>${s.outcome}</td></tr>`;
         });
-        html += `</tbody></table>`;
+        html += `</tbody></table></div>`;
         document.getElementById('expertRank').innerHTML = html;
     }
 
@@ -223,6 +226,10 @@
 
     function renderMatches() {
         const filtered = currentGroup === 'all' ? matches : matches.filter(m => m.group === currentGroup);
+        if (filtered.length === 0) {
+            document.getElementById('matches').innerHTML = '<div style="text-align:center">Нет матчей</div>';
+            return;
+        }
         let html = '';
         for (let m of filtered) {
             const scoreDisplay = m.score ? m.score : 'TBD';
@@ -240,12 +247,12 @@
                     <div class="score">⚽ СЧЕТ: ${scoreDisplay}</div>
                     <div class="forecast-title">📈 ПРОГНОЗЫ ЭКСПЕРТОВ</div>
                     <div class="experts-grid">
-                        ${EXPERT_NAMES.map((name, idx) => `<div class="expert"><b>${name}</b><br>${m.predictions[idx]}</div>`).join('')}
+                        ${expertNames.map((name, idx) => `<div class="expert"><b>${name}</b><br>${m.predictions[idx]}</div>`).join('')}
                     </div>
                 </div>
             `;
         }
-        document.getElementById('matches').innerHTML = html || '<div style="text-align:center">Нет матчей</div>';
+        document.getElementById('matches').innerHTML = html;
     }
 
     function renderAll() {
@@ -253,6 +260,10 @@
         renderStandings();
         renderMatches();
     }
+
+    const expertRankDiv = document.createElement('div');
+    expertRankDiv.id = 'expertRank';
+    document.querySelector('.container').insertBefore(expertRankDiv, document.getElementById('filterBar'));
 
     document.getElementById('refreshBtn').addEventListener('click', () => {
         loadCSV().then(() => renderAll());
