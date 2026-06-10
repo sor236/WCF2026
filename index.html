@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>ЧМ 2026 · Динамическая презентация (XLSX)</title>
+    <title>ЧМ 2026 · Рейтинг экспертов (XLSX)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
@@ -30,7 +30,7 @@
         }
         .app { position: relative; z-index: 2; max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
         .hero { text-align: center; margin-bottom: 2rem; }
-        .hero h1 { font-size: 2.8rem; font-weight: 800; background: linear-gradient(135deg, #fff, #b9fbc0, #2dd4bf); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero h1 { font-size: 2.5rem; background: linear-gradient(135deg, #fff, #b9fbc0, #2dd4bf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .hero .sub { font-size: 1rem; color: #b6e6e0; margin-top: 0.5rem; }
         .experts-rank { background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); border-radius: 1.5rem; padding: 1rem; margin-bottom: 2rem; border: 1px solid rgba(45,212,191,0.4); overflow-x: auto; }
         .experts-rank h3 { margin-bottom: 0.8rem; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
@@ -42,17 +42,14 @@
         .rank-2 { background: linear-gradient(90deg, #c0c0c020, transparent); }
         .rank-3 { background: linear-gradient(90deg, #cd7f3220, transparent); }
         .filter-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-bottom: 2rem; }
-        .filter-btn { background: rgba(20,35,33,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(72,187,160,0.4); padding: 0.5rem 1.2rem; border-radius: 60px; font-weight: 600; font-size: 0.85rem; color: #e2f2ef; cursor: pointer; transition: 0.2s; }
-        .filter-btn.active { background: #2dd4bf; border-color: #2dd4bf; color: #05100f; box-shadow: 0 5px 12px rgba(45,212,191,0.3); }
+        .filter-btn { background: rgba(20,35,33,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(72,187,160,0.4); padding: 0.5rem 1.2rem; border-radius: 60px; font-weight: 600; font-size: 0.85rem; color: #e2f2ef; cursor: pointer; }
+        .filter-btn.active { background: #2dd4bf; color: #05100f; }
         .standings { background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); border-radius: 1.5rem; padding: 1rem; margin-bottom: 2rem; overflow-x: auto; border: 1px solid rgba(45,212,191,0.3); }
         .standings h3 { margin-bottom: 0.8rem; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
         .standings table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
         .standings th, .standings td { padding: 0.5rem 0.3rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .standings th { background: rgba(45,212,191,0.2); font-weight: 600; }
-        .team-name { text-align: left; font-weight: 500; }
         .matches-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem; }
-        .match-card { background: rgba(12,27,25,0.75); backdrop-filter: blur(12px); border-radius: 1.5rem; border: 1px solid rgba(45,212,191,0.25); transition: transform 0.2s; overflow: hidden; }
-        .match-card:hover { transform: translateY(-3px); }
+        .match-card { background: rgba(12,27,25,0.75); backdrop-filter: blur(12px); border-radius: 1.5rem; border: 1px solid rgba(45,212,191,0.25); overflow: hidden; }
         .card-header { background: rgba(0,0,0,0.4); padding: 0.7rem 1rem; display: flex; justify-content: space-between; font-size: 0.7rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .group-badge { background: #1e2f2c; padding: 0.2rem 0.8rem; border-radius: 30px; font-weight: 700; }
         .teams { display: flex; justify-content: space-between; align-items: center; padding: 1rem; gap: 0.5rem; }
@@ -73,7 +70,7 @@
 <div class="app">
     <div class="hero">
         <h1><i class="fas fa-futbol"></i> ЧМ 2026 · Рейтинг экспертов</h1>
-        <div class="sub">Данные из XLSX-файла (WCF2026.xlsx) · Групповой этап</div>
+        <div class="sub">Данные из XLSX-файла (WCF2026.xlsx)</div>
     </div>
     <div id="expertsRankContainer" class="experts-rank"></div>
     <div class="filter-bar" id="filterBar"></div>
@@ -86,92 +83,104 @@
 </div>
 
 <script>
-    // ==================== НАСТРОЙКИ ====================
-    const XLSX_FILE = 'WCF2026.xlsx';    // имя файла в репозитории
-    // =================================================
-
-    let matches = [];      // массив объектов матча
-    let experts = [];      // массив имён экспертов
+    const XLSX_FILE = 'WCF2026.xlsx';
+    let matches = [];
+    let experts = [];
     let currentGroup = 'all';
 
-    // Загрузка и парсинг XLSX
     async function loadFromXLSX() {
         try {
+            console.log('Загрузка файла:', XLSX_FILE);
             const response = await fetch(XLSX_FILE);
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             const arrayBuffer = await response.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
             const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            console.log('Всего строк в листе:', rows.length);
 
-            if (!rows || rows.length < 3) throw new Error('Недостаточно строк в файле');
+            if (rows.length < 3) throw new Error('Недостаточно строк');
 
-            // Ищем строку с заголовками (вторая строка, индекс 1)
-            const headerRow = rows[1];
-            // Определяем индексы колонок по ключевым словам (регистронезависимо)
+            // Определяем строку с заголовками (ищем непустую строку с "Гр." или "Группа")
+            let headerRow = null;
+            let dataStart = 0;
+            for (let i = 0; i < Math.min(rows.length, 10); i++) {
+                const row = rows[i];
+                if (row && row.some(cell => {
+                    const s = (cell || '').toString().toLowerCase();
+                    return s.includes('гр.') || s.includes('групп') || s === 'a' || s === 'b';
+                })) {
+                    headerRow = row;
+                    dataStart = i + 1;
+                    break;
+                }
+            }
+            if (!headerRow) throw new Error('Не найдена строка заголовков');
+
+            console.log('Заголовки:', headerRow);
+
+            // Поиск колонок
             function findCol(keywords) {
                 for (let i = 0; i < headerRow.length; i++) {
-                    const cell = (headerRow[i] || '').toString().trim().toLowerCase();
+                    const cell = (headerRow[i] || '').toString().toLowerCase();
                     if (keywords.some(k => cell.includes(k))) return i;
                 }
                 return -1;
             }
 
-            const groupCol = findCol(['группа', 'гр.', 'group']);
+            const groupCol = findCol(['гр.', 'групп', 'group']);
             const dateCol = findCol(['дата', 'date']);
             const timeCol = findCol(['время', 'time']);
             const homeCol = findCol(['хозяева', 'хозя', 'home']);
             const awayCol = findCol(['гости', 'гост', 'away']);
-            const scoreHomeCol = findCol(['счет хозяев', 'счёт хозяев', 'home score']);
-            const scoreAwayCol = findCol(['счет гостей', 'счёт гостей', 'away score']);
+            const scoreHomeCol = findCol(['счет хозяев', 'счёт хозяев', 'home score', 'счёт хозя']);
+            const scoreAwayCol = findCol(['счет гостей', 'счёт гостей', 'away score', 'счёт гост']);
 
-            // Ищем колонки экспертов: по именам
+            console.log('Индексы:', { groupCol, dateCol, timeCol, homeCol, awayCol, scoreHomeCol, scoreAwayCol });
+
+            // Эксперты
             const expertNames = ['антон', 'георгий', 'герман', 'олег', 'тимур', 'юрий'];
-            const expertHomeCols = [];
-            const expertAwayCols = [];
+            let expertHomeCols = [], expertAwayCols = [];
             for (let name of expertNames) {
-                let homeIdx = -1, awayIdx = -1;
+                let hIdx = -1, aIdx = -1;
                 for (let i = 0; i < headerRow.length; i++) {
-                    const cell = (headerRow[i] || '').toString().trim().toLowerCase();
+                    const cell = (headerRow[i] || '').toString().toLowerCase();
                     if (cell.includes(name)) {
-                        if (cell.includes('хозя') || cell.includes('home')) homeIdx = i;
-                        else if (cell.includes('гост') || cell.includes('away')) awayIdx = i;
+                        if (cell.includes('хозя') || cell.includes('home')) hIdx = i;
+                        else if (cell.includes('гост') || cell.includes('away')) aIdx = i;
                     }
                 }
-                // Если не нашли раздельные колонки, пробуем одну колонку с форматом "X:Y"
-                if (homeIdx === -1 && awayIdx === -1) {
+                if (hIdx === -1 && aIdx === -1) {
+                    // ищем одну колонку с именем
                     for (let i = 0; i < headerRow.length; i++) {
-                        const cell = (headerRow[i] || '').toString().trim().toLowerCase();
-                        if (cell.includes(name) && (cell.includes('прогноз') || cell.includes('pred'))) {
-                            homeIdx = i; // будем использовать одну колонку
-                            awayIdx = -2; // маркер одиночной
+                        const cell = (headerRow[i] || '').toString().toLowerCase();
+                        if (cell === name || cell.includes(name)) {
+                            hIdx = i;
+                            aIdx = -2; // маркер одиночной
                             break;
                         }
                     }
                 }
-                expertHomeCols.push(homeIdx);
-                expertAwayCols.push(awayIdx);
+                expertHomeCols.push(hIdx);
+                expertAwayCols.push(aIdx);
             }
             experts = expertNames.map(n => n.charAt(0).toUpperCase() + n.slice(1));
+            console.log('Эксперты:', experts);
+            console.log('Колонки экспертов (home/away):', expertHomeCols, expertAwayCols);
 
-            // Сбор данных, начиная с третьей строки (индекс 2), пока есть непустые группы
-            const dataRows = [];
-            for (let i = 2; i < rows.length; i++) {
+            // Сбор данных
+            matches = [];
+            for (let i = dataStart; i < rows.length; i++) {
                 const row = rows[i];
                 if (!row || row.length === 0) continue;
                 const group = groupCol !== -1 ? (row[groupCol] || '').toString().trim() : '';
-                if (group === '') continue; // пустая строка
-                dataRows.push(row);
-            }
-
-            matches = [];
-            for (let row of dataRows) {
-                const group = groupCol !== -1 ? (row[groupCol] || '').toString().trim() : '';
-                const dateRaw = dateCol !== -1 ? (row[dateCol] || '') : '';
-                let date = dateRaw;
+                if (group === '') continue;
+                const dateRaw = dateCol !== -1 ? row[dateCol] : '';
+                let date = '';
                 if (dateRaw && typeof dateRaw === 'number') {
                     const jsDate = XLSX.SSF.parse_date_code(dateRaw);
                     date = `${jsDate.y}-${String(jsDate.m).padStart(2,'0')}-${String(jsDate.d).padStart(2,'0')}`;
-                } else if (dateRaw && dateRaw.toString().includes('-')) {
+                } else if (dateRaw) {
                     date = dateRaw.toString().split('T')[0];
                 }
                 const time = timeCol !== -1 ? (row[timeCol] || '').toString().trim() : '';
@@ -183,45 +192,36 @@
                     const a = parseInt(row[scoreAwayCol]);
                     if (!isNaN(h) && !isNaN(a)) score = `${h}:${a}`;
                 }
-                // Прогнозы экспертов
+                // Прогнозы
                 let predictions = [];
                 for (let e = 0; e < experts.length; e++) {
                     let predStr = '';
                     if (expertHomeCols[e] !== -1 && expertAwayCols[e] === -2) {
-                        // одна колонка
                         predStr = (row[expertHomeCols[e]] || '').toString().trim();
-                    } else if (expertHomeCols[e] !== -1 && expertAwayCols[e] !== -1) {
-                        const h = row[expertHomeCols[e]];
-                        const a = row[expertAwayCols[e]];
-                        if (h !== undefined && a !== undefined) {
-                            const hVal = parseInt(h);
-                            const aVal = parseInt(a);
-                            if (!isNaN(hVal) && !isNaN(aVal)) predStr = `${hVal}:${aVal}`;
-                            else predStr = '';
-                        }
+                    } else if (expertHomeCols[e] !== -1 && expertAwayCols[e] !== -1 && expertAwayCols[e] !== -2) {
+                        const hVal = parseInt(row[expertHomeCols[e]]);
+                        const aVal = parseInt(row[expertAwayCols[e]]);
+                        if (!isNaN(hVal) && !isNaN(aVal)) predStr = `${hVal}:${aVal}`;
                     }
                     predictions.push(predStr || '—');
                 }
-                matches.push({
-                    group, date, time, home, away,
-                    score: score,
-                    predictions: predictions
-                });
+                matches.push({ group, date, time, home, away, score, predictions });
             }
+            console.log(`Загружено матчей: ${matches.length}`);
+            if (matches.length === 0) throw new Error('Не найдено строк с данными');
 
-            // Построение интерфейса
             buildFilterButtons();
             renderExpertsRank();
             renderStandings(currentGroup);
             renderMatches(currentGroup);
         } catch (err) {
-            console.error(err);
-            document.getElementById('matchesContainer').innerHTML = `<div style="text-align:center; padding:2rem;">❌ Ошибка загрузки XLSX: ${err.message}<br>Убедитесь, что файл "${XLSX_FILE}" находится в той же папке и имеет правильную структуру.</div>`;
+            console.error('Ошибка:', err);
+            document.getElementById('matchesContainer').innerHTML = `<div style="text-align:center; padding:2rem;">❌ Ошибка: ${err.message}<br>Проверьте консоль (F12) для деталей.</div>`;
         }
     }
 
     function buildFilterButtons() {
-        const groups = [...new Set(matches.map(m => m.group).filter(g => g && g !== ''))].sort();
+        const groups = [...new Set(matches.map(m => m.group).filter(g => g))].sort();
         const container = document.getElementById('filterBar');
         if (groups.length === 0) { container.innerHTML = ''; return; }
         let html = `<button class="filter-btn active" data-group="all">🌍 Все группы</button>`;
@@ -238,46 +238,44 @@
         });
     }
 
-    // Подсчёт очков для эксперта (3-2-1)
     function getPoints(predStr, realHome, realAway) {
         if (!predStr || predStr === '—') return 0;
         const parts = predStr.split(':');
         if (parts.length !== 2) return 0;
-        const predHome = parseInt(parts[0]);
-        const predAway = parseInt(parts[1]);
-        if (isNaN(predHome) || isNaN(predAway)) return 0;
-        if (predHome === realHome && predAway === realAway) return 3;
+        const ph = parseInt(parts[0]), pa = parseInt(parts[1]);
+        if (isNaN(ph) || isNaN(pa)) return 0;
+        if (ph === realHome && pa === realAway) return 3;
         const realDiff = realHome - realAway;
-        const predDiff = predHome - predAway;
+        const predDiff = ph - pa;
         if (realDiff === predDiff) return 2;
         const realOutcome = realHome > realAway ? 1 : (realHome === realAway ? 0 : -1);
-        const predOutcome = predHome > predAway ? 1 : (predHome === predAway ? 0 : -1);
+        const predOutcome = ph > pa ? 1 : (ph === pa ? 0 : -1);
         if (realOutcome === predOutcome) return 1;
         return 0;
     }
 
     function renderExpertsRank() {
         let stats = experts.map(name => ({ name, points: 0, exact: 0, diff: 0, outcome: 0 }));
-        for (let match of matches) {
-            if (!match.score) continue;
-            const [realHome, realAway] = match.score.split(':').map(Number);
-            if (isNaN(realHome) || isNaN(realAway)) continue;
+        for (let m of matches) {
+            if (!m.score) continue;
+            const [rh, ra] = m.score.split(':').map(Number);
+            if (isNaN(rh) || isNaN(ra)) continue;
             for (let i = 0; i < experts.length; i++) {
-                const pts = getPoints(match.predictions[i], realHome, realAway);
+                const pts = getPoints(m.predictions[i], rh, ra);
                 if (pts === 3) { stats[i].points += 3; stats[i].exact++; }
                 else if (pts === 2) { stats[i].points += 2; stats[i].diff++; }
                 else if (pts === 1) { stats[i].points += 1; stats[i].outcome++; }
             }
         }
         stats.sort((a,b) => b.points - a.points || b.exact - a.exact || b.diff - a.diff);
-        let html = `<h3><i class="fas fa-trophy"></i> 🏆 Рейтинг экспертов (3 — точный счёт, 2 — разница, 1 — исход)</h3>
+        let html = `<h3><i class="fas fa-trophy"></i> Рейтинг экспертов (3 — точный счёт, 2 — разница, 1 — исход)</h3>
             <table class="rank-table"><thead><tr><th>Место</th><th>Эксперт</th><th>Очки</th><th>Точных<br>счетов</th><th>Разниц<br>(2 очка)</th><th>Исходов<br>(1 очко)</th></tr></thead><tbody>`;
         stats.forEach((s, idx) => {
             let medal = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : '';
             html += `<tr class="${medal}"><td>${idx+1}</td><td class="expert-name">${s.name}</td>
                      <td><strong>${s.points}</strong></td><td>${s.exact}</td><td>${s.diff}</td><td>${s.outcome}</td></tr>`;
         });
-        html += `</tbody></table>`;
+        html += `</tbody></tr></div>`;
         document.getElementById('expertsRankContainer').innerHTML = html;
     }
 
@@ -290,20 +288,21 @@
         for (let t of teams) stats[t] = { played:0, wins:0, draws:0, losses:0, gf:0, ga:0, points:0 };
         for (let m of groupMatches) {
             const [hg, ag] = m.score.split(':').map(Number);
-            const home = m.home, away = m.away;
-            stats[home].gf += hg; stats[home].ga += ag;
-            stats[away].gf += ag; stats[away].ga += hg;
-            stats[home].played++; stats[away].played++;
-            if (hg > ag) { stats[home].wins++; stats[home].points += 3; stats[away].losses++; }
-            else if (hg < ag) { stats[away].wins++; stats[away].points += 3; stats[home].losses++; }
-            else { stats[home].draws++; stats[away].draws++; stats[home].points += 1; stats[away].points += 1; }
+            stats[m.home].gf += hg; stats[m.home].ga += ag;
+            stats[m.away].gf += ag; stats[m.away].ga += hg;
+            stats[m.home].played++; stats[m.away].played++;
+            if (hg > ag) { stats[m.home].wins++; stats[m.home].points += 3; stats[m.away].losses++; }
+            else if (hg < ag) { stats[m.away].wins++; stats[m.away].points += 3; stats[m.home].losses++; }
+            else { stats[m.home].draws++; stats[m.away].draws++; stats[m.home].points++; stats[m.away].points++; }
         }
         let table = Object.entries(stats).map(([name, st]) => ({ name, ...st }));
         table.sort((a,b) => b.points - a.points || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf);
         let html = `<div class="standings"><h3><i class="fas fa-table"></i> Группа ${group} · Турнирная таблица</h3>
             <table><thead><tr><th>Команда</th><th>И</th><th>В</th><th>Н</th><th>П</th><th>З</th><th>П</th><th>О</th></tr></thead><tbody>`;
         table.forEach(t => {
-            html += `<tr><td class="team-name">${t.name}</td><td>${t.played}</td><td>${t.wins}</td><td>${t.draws}</td><td>${t.losses}</td><td>${t.gf}</td><td>${t.ga}</td><td>${t.points}</td></tr>`;
+            html += `<tr><td class="team-name">${t.name}</td>
+                      <td>${t.played} <td>${t.wins} <td>${t.draws} <td>${t.losses}
+                      <td>${t.gf} <td>${t.ga} <td><strong>${t.points}</strong></tr>`;
         });
         html += `</tbody></table></div>`;
         document.getElementById('standingsContainer').innerHTML = html;
