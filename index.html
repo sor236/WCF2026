@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>ЧМ 2026 · Рейтинг экспертов (CSV)</title>
+    <title>ЧМ 2026 · Рейтинг экспертов (фиксированные индексы)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -29,10 +29,9 @@
         }
         .app { position: relative; z-index: 2; max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
         .hero { text-align: center; margin-bottom: 2rem; }
-        .hero h1 { font-size: 2.8rem; font-weight: 800; background: linear-gradient(135deg, #fff, #b9fbc0, #2dd4bf); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero h1 { font-size: 2.5rem; background: linear-gradient(135deg, #fff, #b9fbc0, #2dd4bf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .hero .sub { font-size: 1rem; color: #b6e6e0; margin-top: 0.5rem; }
         .experts-rank { background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); border-radius: 1.5rem; padding: 1rem; margin-bottom: 2rem; border: 1px solid rgba(45,212,191,0.4); overflow-x: auto; }
-        .experts-rank h3 { margin-bottom: 0.8rem; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
         .rank-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         .rank-table th, .rank-table td { padding: 0.6rem 0.3rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .rank-table th { background: rgba(45,212,191,0.25); font-weight: 700; }
@@ -41,14 +40,13 @@
         .rank-2 { background: linear-gradient(90deg, #c0c0c020, transparent); }
         .rank-3 { background: linear-gradient(90deg, #cd7f3220, transparent); }
         .filter-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-bottom: 2rem; }
-        .filter-btn { background: rgba(20,35,33,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(72,187,160,0.4); padding: 0.5rem 1.2rem; border-radius: 60px; font-weight: 600; font-size: 0.85rem; color: #e2f2ef; cursor: pointer; transition: 0.2s; }
+        .filter-btn { background: rgba(20,35,33,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(72,187,160,0.4); padding: 0.5rem 1.2rem; border-radius: 60px; font-weight: 600; font-size: 0.85rem; color: #e2f2ef; cursor: pointer; }
         .filter-btn.active { background: #2dd4bf; color: #05100f; }
         .standings { background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); border-radius: 1.5rem; padding: 1rem; margin-bottom: 2rem; overflow-x: auto; border: 1px solid rgba(45,212,191,0.3); }
         .standings table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
         .standings th, .standings td { padding: 0.5rem 0.3rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .matches-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem; }
-        .match-card { background: rgba(12,27,25,0.75); backdrop-filter: blur(12px); border-radius: 1.5rem; border: 1px solid rgba(45,212,191,0.25); overflow: hidden; transition: transform 0.2s; }
-        .match-card:hover { transform: translateY(-3px); }
+        .match-card { background: rgba(12,27,25,0.75); backdrop-filter: blur(12px); border-radius: 1.5rem; border: 1px solid rgba(45,212,191,0.25); overflow: hidden; }
         .card-header { background: rgba(0,0,0,0.4); padding: 0.7rem 1rem; display: flex; justify-content: space-between; font-size: 0.7rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .group-badge { background: #1e2f2c; padding: 0.2rem 0.8rem; border-radius: 30px; font-weight: 700; }
         .teams { display: flex; justify-content: space-between; align-items: center; padding: 1rem; gap: 0.5rem; }
@@ -59,25 +57,25 @@
         .forecast-title { font-size: 0.65rem; margin: 0.3rem 1rem; color: #8dcfc6; }
         .experts-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.3rem 1rem 1rem; justify-content: space-between; }
         .expert-pred { background: #0c1f1c; border-radius: 1rem; flex: 1; text-align: center; padding: 0.3rem; font-size: 0.7rem; }
-        .debug { background: #1e2f2c; color: #ffaa33; padding: 0.5rem; margin: 1rem 0; border-radius: 1rem; font-family: monospace; white-space: pre-wrap; font-size: 0.8rem; }
+        .debug { background: #1e2f2c; color: #ffaa33; padding: 0.5rem; margin: 1rem 0; border-radius: 1rem; font-family: monospace; white-space: pre-wrap; }
         .bottom-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; justify-content: center; gap: 1rem; padding: 0.6rem; border-top: 1px solid #2dd4bf; z-index: 100; }
         .bottom-btn { background: #ffaa33; border: none; padding: 0.4rem 1.2rem; border-radius: 60px; font-weight: 600; font-size: 0.8rem; color: #05100f; cursor: pointer; }
         .footer-note { text-align: center; margin-top: 2rem; font-size: 0.7rem; opacity: 0.6; margin-bottom: 3rem; }
-        @media (max-width: 700px) { .team { font-size: 0.75rem; } .score { font-size: 1rem; } .debug { font-size: 0.7rem; } }
+        @media (max-width: 700px) { .team { font-size: 0.75rem; } .score { font-size: 1rem; } }
     </style>
 </head>
 <body>
 <div class="app">
     <div class="hero">
         <h1><i class="fas fa-futbol"></i> ЧМ 2026 · Рейтинг экспертов</h1>
-        <div class="sub">Данные из WCF2026.csv (CSV в репозитории)</div>
+        <div class="sub">Данные из WCF2026.csv (фиксированные колонки)</div>
     </div>
     <div id="debugPanel" class="debug"></div>
     <div id="expertsRankContainer" class="experts-rank"></div>
     <div class="filter-bar" id="filterBar"></div>
     <div id="standingsContainer" class="standings"></div>
     <div class="matches-grid" id="matchesContainer"></div>
-    <div class="footer-note">Данные загружены из CSV-файла. Нажмите «Обновить» после изменения файла.</div>
+    <div class="footer-note">Данные загружены из CSV. Нажмите «Обновить» после изменения файла.</div>
 </div>
 <div class="bottom-panel">
     <button id="refreshBtn" class="bottom-btn"><i class="fas fa-sync-alt"></i> Обновить данные</button>
@@ -91,136 +89,99 @@
 
     async function loadFromCSV() {
         const debugDiv = document.getElementById('debugPanel');
-        debugDiv.innerHTML = '⏳ Загрузка WCF2026.csv...';
+        debugDiv.innerHTML = 'Загрузка файла WCF2026.csv...';
         try {
             const response = await fetch(CSV_FILE);
-            if (!response.ok) throw new Error(`HTTP ${response.status} — файл не найден. Убедитесь, что WCF2026.csv загружен в репозиторий.`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден`);
             const csvText = await response.text();
-            const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
-            debugDiv.innerHTML += `\n✅ Прочитано строк: ${lines.length}`;
+            const rows = csvText.split(/\r?\n/).filter(row => row.trim().length > 0);
+            debugDiv.innerHTML += `\nПрочитано строк: ${rows.length}`;
 
-            if (lines.length < 2) throw new Error('Недостаточно строк в CSV');
+            if (rows.length < 2) throw new Error('Недостаточно строк');
 
-            // Разбор CSV с учётом кавычек
-            function parseCSVLine(line) {
-                const result = [];
-                let inQuotes = false;
-                let current = '';
-                for (let i = 0; i < line.length; i++) {
-                    const ch = line[i];
-                    if (ch === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (ch === ',' && !inQuotes) {
-                        result.push(current.trim());
-                        current = '';
-                    } else {
-                        current += ch;
-                    }
+            // Ищем первую строку, которая содержит букву группы (A, B, C, D, E, F, G, H, I, J, K, L)
+            let startRow = 0;
+            for (let i = 0; i < rows.length; i++) {
+                const firstCell = rows[i].split(',')[0].replace(/^"|"$/g, '').trim();
+                if (firstCell === 'A' || firstCell === 'B' || firstCell === 'C' || firstCell === 'D' || 
+                    firstCell === 'E' || firstCell === 'F' || firstCell === 'G' || firstCell === 'H' ||
+                    firstCell === 'I' || firstCell === 'J' || firstCell === 'K' || firstCell === 'L') {
+                    startRow = i;
+                    break;
                 }
-                result.push(current.trim());
-                return result.map(c => c.replace(/^"|"$/g, ''));
             }
+            debugDiv.innerHTML += `\nНачальная строка с данными: ${startRow}`;
 
-            const headers = parseCSVLine(lines[0]);
-            debugDiv.innerHTML += `\n📌 Заголовки (${headers.length}): ${headers.slice(0, 8).join(' | ')}${headers.length > 8 ? ' …' : ''}`;
+            // Индексы колонок (0-based, как в CSV после split)
+            // В вашем CSV первые несколько колонок могут быть пустыми, но мы опираемся на сдвиг
+            // Сначала найдём пустые колонки в начале
+            let sampleRow = rows[startRow].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+            let firstNonEmpty = sampleRow.findIndex(cell => cell !== '');
+            debugDiv.innerHTML += `\nПервая непустая колонка в строке данных: ${firstNonEmpty}`;
+            
+            // Теперь индексы относительно firstNonEmpty
+            const groupIdx = firstNonEmpty;      // 0
+            const timeIdx = firstNonEmpty + 1;   // 1
+            const dateIdx = firstNonEmpty + 2;   // 2
+            const homeIdx = firstNonEmpty + 3;   // 3
+            const awayIdx = firstNonEmpty + 4;   // 4
+            const scoreHomeIdx = firstNonEmpty + 7;  // 7 (сдвиг по вашему описанию)
+            const scoreAwayIdx = firstNonEmpty + 8;  // 8
+            const expertStartIdx = firstNonEmpty + 10; // 10 (Антон хозяева)
+            
+            debugDiv.innerHTML += `\n\nИндексы колонок:
+            - группа: ${groupIdx}
+            - время: ${timeIdx}
+            - дата: ${dateIdx}
+            - хозяева: ${homeIdx}
+            - гости: ${awayIdx}
+            - счёт хозяев: ${scoreHomeIdx}
+            - счёт гостей: ${scoreAwayIdx}
+            - начало прогнозов: ${expertStartIdx}`;
 
-            // Поиск индексов колонок
-            function findCol(keywords) {
-                for (let i = 0; i < headers.length; i++) {
-                    const h = headers[i].toLowerCase();
-                    if (keywords.some(k => h.includes(k))) return i;
-                }
-                return -1;
-            }
-
-            const groupCol = findCol(['гр.', 'групп', 'group']);
-            const dateCol = findCol(['дата', 'date']);
-            const timeCol = findCol(['время', 'time']);
-            const homeCol = findCol(['хозяева', 'хозя', 'home', 'команда1']);
-            const awayCol = findCol(['гости', 'гост', 'away', 'команда2']);
-            const scoreHomeCol = findCol(['счет хозяев', 'счёт хозяев', 'home score']);
-            const scoreAwayCol = findCol(['счет гостей', 'счёт гостей', 'away score']);
-
-            debugDiv.innerHTML += `\n\n🔍 Найденные колонки:
-            • группа: ${groupCol !== -1 ? `"${headers[groupCol]}" (${groupCol})` : '❌ не найдена'}
-            • дата: ${dateCol !== -1 ? `"${headers[dateCol]}" (${dateCol})` : '❌ не найдена'}
-            • время: ${timeCol !== -1 ? `"${headers[timeCol]}" (${timeCol})` : '❌ не найдена'}
-            • хозяева: ${homeCol !== -1 ? `"${headers[homeCol]}" (${homeCol})` : '❌ не найдена'}
-            • гости: ${awayCol !== -1 ? `"${headers[awayCol]}" (${awayCol})` : '❌ не найдена'}
-            • счёт хозяев: ${scoreHomeCol !== -1 ? `"${headers[scoreHomeCol]}" (${scoreHomeCol})` : '❌ не найдена'}
-            • счёт гостей: ${scoreAwayCol !== -1 ? `"${headers[scoreAwayCol]}" (${scoreAwayCol})` : '❌ не найдена'}`;
-
-            // Эксперты
-            const expertNames = ['антон', 'георгий', 'герман', 'олег', 'тимур', 'юрий'];
-            let expertHomeCols = [];
-            let expertAwayCols = [];
-            for (let name of expertNames) {
-                let hIdx = -1, aIdx = -1;
-                for (let i = 0; i < headers.length; i++) {
-                    const h = headers[i].toLowerCase();
-                    if (h.includes(name)) {
-                        if (h.includes('хозя') || h.includes('home')) hIdx = i;
-                        else if (h.includes('гост') || h.includes('away')) aIdx = i;
-                    }
-                }
-                if (hIdx === -1 && aIdx === -1) {
-                    for (let i = 0; i < headers.length; i++) {
-                        const h = headers[i].toLowerCase();
-                        if (h === name || (h.includes(name) && (h.includes('прогноз') || h.includes('pred')))) {
-                            hIdx = i;
-                            aIdx = -2; // одна колонка
-                            break;
-                        }
-                    }
-                }
-                expertHomeCols.push(hIdx);
-                expertAwayCols.push(aIdx);
-            }
-            experts = expertNames.map(n => n.charAt(0).toUpperCase() + n.slice(1));
-
-            // Парсинг данных (строки 1..N)
+            const expertNames = ['Антон', 'Георгий', 'Герман', 'Олег', 'Тимур', 'Юрий'];
             matches = [];
-            for (let i = 1; i < lines.length; i++) {
-                const cols = parseCSVLine(lines[i]);
-                if (cols.length < 2) continue;
-                const group = groupCol !== -1 ? cols[groupCol] : '';
+            
+            for (let i = startRow; i < rows.length; i++) {
+                const cols = rows[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                if (cols.length < groupIdx + 5) continue;
+                const group = cols[groupIdx];
                 if (group === '') continue;
-                const date = dateCol !== -1 ? cols[dateCol] : '';
-                const time = timeCol !== -1 ? cols[timeCol] : '';
-                const home = homeCol !== -1 ? cols[homeCol] : '';
-                const away = awayCol !== -1 ? cols[awayCol] : '';
+                const time = cols[timeIdx] || '';
+                const dateRaw = cols[dateIdx] || '';
+                let date = dateRaw;
+                if (dateRaw.includes('T')) date = dateRaw.split('T')[0];
+                const home = cols[homeIdx] || '';
+                const away = cols[awayIdx] || '';
                 let score = null;
-                if (scoreHomeCol !== -1 && scoreAwayCol !== -1) {
-                    const h = parseInt(cols[scoreHomeCol]);
-                    const a = parseInt(cols[scoreAwayCol]);
-                    if (!isNaN(h) && !isNaN(a)) score = `${h}:${a}`;
-                }
+                const homeScore = parseInt(cols[scoreHomeIdx]);
+                const awayScore = parseInt(cols[scoreAwayIdx]);
+                if (!isNaN(homeScore) && !isNaN(awayScore)) score = `${homeScore}:${awayScore}`;
+                
                 const predictions = [];
-                for (let e = 0; e < experts.length; e++) {
+                for (let e = 0; e < expertNames.length; e++) {
+                    const homePredIdx = expertStartIdx + e * 2;
+                    const awayPredIdx = homePredIdx + 1;
                     let pred = '';
-                    if (expertHomeCols[e] !== -1 && expertAwayCols[e] === -2) {
-                        pred = cols[expertHomeCols[e]] || '';
-                    } else if (expertHomeCols[e] !== -1 && expertAwayCols[e] !== -1 && expertAwayCols[e] !== -2) {
-                        const h = parseInt(cols[expertHomeCols[e]]);
-                        const a = parseInt(cols[expertAwayCols[e]]);
+                    if (cols.length > homePredIdx && cols.length > awayPredIdx) {
+                        const h = parseInt(cols[homePredIdx]);
+                        const a = parseInt(cols[awayPredIdx]);
                         if (!isNaN(h) && !isNaN(a)) pred = `${h}:${a}`;
                     }
                     predictions.push(pred || '—');
                 }
                 matches.push({ group, date, time, home, away, score, predictions });
             }
-            debugDiv.innerHTML += `\n\n📊 Загружено матчей: ${matches.length}`;
-            if (matches.length === 0) throw new Error('Не найдено строк с данными (нет заполненных групп)');
+            experts = expertNames;
+            debugDiv.innerHTML += `\n\nЗагружено матчей: ${matches.length}`;
+            if (matches.length === 0) throw new Error('Не найдено строк с данными');
 
             buildFilterButtons();
             renderExpertsRank();
             renderStandings(currentGroup);
             renderMatches(currentGroup);
         } catch (err) {
-            debugDiv.innerHTML += `\n\n❌ ОШИБКА: ${err.message}\n\nРекомендации:
-- Убедитесь, что файл называется точно WCF2026.csv (регистр важен)
-- Откройте файл в Excel, сохраните как CSV UTF-8
-- Загрузите CSV в корень репозитория`;
+            debugDiv.innerHTML += `\n\n❌ ОШИБКА: ${err.message}\nПроверьте, что CSV экспортирован в UTF-8 и содержит данные.`;
             console.error(err);
         }
     }
