@@ -111,7 +111,7 @@
             align-items: center;
             gap: 0.5rem;
         }
-        .standings table, .rank-table {
+        .standings table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.8rem;
@@ -208,10 +208,9 @@
             color: #f0f3f8;
             border-radius: 1rem;
             font-family: monospace;
-            opacity: 0.9;
         }
         .score-inputs input:disabled {
-            opacity: 0.7;
+            opacity: 0.8;
             background: #1a2a27;
             cursor: default;
         }
@@ -254,7 +253,7 @@
             font-size: 0.8rem;
         }
         .bottom-btn {
-            background: rgba(45, 212, 191, 0.8);
+            background: #ffaa33;
             border: none;
             padding: 0.4rem 1.2rem;
             border-radius: 60px;
@@ -263,10 +262,6 @@
             color: #05100f;
             cursor: pointer;
             transition: 0.2s;
-        }
-        .bottom-btn.refresh {
-            background: #ffaa33;
-            color: #05100f;
         }
         .footer-note {
             text-align: center;
@@ -307,23 +302,22 @@
     <div id="standingsContainer"></div>
     <div class="matches-grid" id="matchesContainer"></div>
     <div class="footer-note">
-        <i class="fas fa-chart-line"></i> Данные о счетах берутся из Google Таблицы. Нажмите "Обновить данные" после изменения таблицы.
+        <i class="fas fa-chart-line"></i> Данные о счетах загружаются из Google Таблицы. Нажмите "Обновить" после изменения таблицы.
     </div>
 </div>
 
 <div class="bottom-panel" id="bottomPanel">
-    <button id="refreshDataBtn" class="bottom-btn refresh"><i class="fas fa-sync-alt"></i> Обновить данные</button>
-    <span id="lockStatus" class="bottom-status">(данные из Google Sheets CSV)</span>
+    <button id="refreshDataBtn" class="bottom-btn"><i class="fas fa-sync-alt"></i> Обновить данные</button>
+    <span id="lockStatus">(данные из Google Sheets)</span>
 </div>
 
 <script>
-    // ==============================================================
-    // 👇 ССЫЛКА НА CSV (ПРОВЕРЕНА И ГОТОВА К ИСПОЛЬЗОВАНИЮ)
-    // ==============================================================
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTiW8f1X4s-HEU54NEiIVmesOJ6mKAZLXQBzdcwEVhDFW8tY9h3XeD2C7nc-FpQTclyTgZ9sBGLgxg4/pub?output=csv';
-    // ==============================================================
+    // ==================== НАСТРОЙКИ ====================
+    const SPREADSHEET_ID = '15Jp5y370IZmL8wFZPWFSGBjwKEGhv8xb4Ip3Jp_AdRU';
+    const SHEET_NAME = 'Лист1';
+    // ===================================================
 
-    // БАЗОВЫЕ ДАННЫЕ МАТЧЕЙ (без изменений)
+    // БАЗОВЫЕ ДАННЫЕ МАТЧЕЙ (72 матча, полные прогнозы)
     const baseMatches = [
         { id: 1, group:"A", date:"11.06.2026", time:"22:00", home:"Мексика", away:"ЮАР", pred:["2:3","2:1","3:1","2:0","2:0","3:0"] },
         { id: 2, group:"A", date:"12.06.2026", time:"05:00", home:"Южная Корея", away:"Чехия", pred:["1:1","1:2","1:2","1:0","1:1","1:1"] },
@@ -402,58 +396,51 @@
     const experts = ["Антон", "Георгий", "Герман", "Олег", "Тимур", "Юрий"];
     let scores = {};
 
-    // Функция загрузки CSV
-    async function loadScoresFromCSV() {
+    // Загрузка данных через Google Visualization API (JSONP, без CORS)
+    async function loadScoresFromSheet() {
+        const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
         try {
-            const response = await fetch(CSV_URL);
-            const csvText = await response.text();
+            const response = await fetch(url);
+            const text = await response.text();
+            const jsonStart = text.indexOf('(');
+            const jsonEnd = text.lastIndexOf(')');
+            const jsonStr = text.substring(jsonStart + 1, jsonEnd);
+            const data = JSON.parse(jsonStr);
             
-            // Парсинг CSV (простой, но эффективный для наших данных)
-            const rows = csvText.split(/\r?\n/);
-            if (rows.length < 2) {
-                console.warn('CSV пуст или нет строк');
+            const rows = data.table.rows;
+            const cols = data.table.cols;
+            
+            // Ищем колонки с ID матча, счётом хозяев и счётом гостей
+            const findCol = (substrings) => cols.findIndex(c => c.label && substrings.some(s => c.label.toLowerCase().includes(s)));
+            let idIdx = findCol(['id', 'матч', 'номер']);
+            let homeIdx = findCol(['хозя', 'home']);
+            let awayIdx = findCol(['гост', 'away']);
+            
+            if (idIdx === -1 || homeIdx === -1 || awayIdx === -1) {
+                console.error('Не найдены колонки. Доступные заголовки:', cols.map(c => c.label));
                 return false;
             }
             
-            // Заголовки (первая строка)
-            const headers = rows[0].split(',').map(h => h.replace(/^["']|["']$/g, '').trim().toLowerCase());
-            
-            // Ищем колонки с ID матча и счетами
-            let idCol = headers.findIndex(h => h.includes('id') || h.includes('матч') || h === 'номер');
-            let homeCol = headers.findIndex(h => h.includes('хозя') || h.includes('home'));
-            let awayCol = headers.findIndex(h => h.includes('гост') || h.includes('away'));
-            
-            if (idCol === -1 || homeCol === -1 || awayCol === -1) {
-                console.warn('Не найдены нужные колонки. Проверьте заголовки:', headers);
-                return false;
-            }
-            
-            // Очищаем старые счета
+            // Сброс предыдущих счетов
             baseMatches.forEach(m => { scores[m.id] = null; });
             
-            // Обрабатываем строки данных
-            for (let i = 1; i < rows.length; i++) {
-                if (rows[i].trim() === '') continue;
-                const cols = rows[i].split(',').map(c => c.replace(/^["']|["']$/g, '').trim());
-                if (cols.length <= Math.max(idCol, homeCol, awayCol)) continue;
-                
-                const matchId = parseInt(cols[idCol]);
-                const homeScore = parseInt(cols[homeCol]);
-                const awayScore = parseInt(cols[awayCol]);
-                
+            for (let row of rows) {
+                const matchId = parseInt(row.c[idIdx]?.v);
+                const homeScore = parseInt(row.c[homeIdx]?.v);
+                const awayScore = parseInt(row.c[awayIdx]?.v);
                 if (!isNaN(matchId) && !isNaN(homeScore) && !isNaN(awayScore)) {
                     scores[matchId] = { home: homeScore, away: awayScore };
                 }
             }
-            console.log('Загружено счетов:', Object.keys(scores).length);
+            console.log(`Загружено счетов: ${Object.keys(scores).length}`);
             return true;
-        } catch (error) {
-            console.error('Ошибка загрузки CSV:', error);
+        } catch (err) {
+            console.error('Ошибка загрузки:', err);
             return false;
         }
     }
 
-    // Функции начисления очков и статистики
+    // Функция начисления очков: 3 — точный счёт, 2 — разница, 1 — исход
     function getPoints(predStr, realHome, realAway) {
         if (!predStr || predStr === "—") return 0;
         const [predHome, predAway] = predStr.split(':').map(Number);
@@ -472,14 +459,14 @@
         let stats = experts.map(name => ({ name, points: 0, exact: 0, diff: 0, outcome: 0 }));
         for (let match of baseMatches) {
             const score = scores[match.id];
-            if (!score || score.home === undefined || score.away === undefined) continue;
+            if (!score || score.home === undefined) continue;
             const realHome = score.home, realAway = score.away;
             if (!match.pred) continue;
             for (let i = 0; i < experts.length; i++) {
                 const pts = getPoints(match.pred[i], realHome, realAway);
-                if (pts === 3) { stats[i].points += 3; stats[i].exact += 1; }
-                else if (pts === 2) { stats[i].points += 2; stats[i].diff += 1; }
-                else if (pts === 1) { stats[i].points += 1; stats[i].outcome += 1; }
+                if (pts === 3) { stats[i].points += 3; stats[i].exact++; }
+                else if (pts === 2) { stats[i].points += 2; stats[i].diff++; }
+                else if (pts === 1) { stats[i].points += 1; stats[i].outcome++; }
             }
         }
         stats.sort((a,b) => b.points - a.points || b.exact - a.exact || b.diff - a.diff);
@@ -496,7 +483,7 @@
             html += `<tr class="${medalClass}"><td>${idx+1}</td><td class="expert-name">${exp.name}</td>
                      <td><strong>${exp.points}</strong></td><td>${exp.exact}</td><td>${exp.diff}</td><td>${exp.outcome}</td></tr>`;
         });
-        html += `</tbody></table>`;
+        html += `</tbody></tr></div>`;
         container.innerHTML = html;
     }
 
@@ -509,15 +496,14 @@
         teams.forEach(team => { stats[team] = { played:0, wins:0, draws:0, losses:0, gf:0, ga:0, points:0 }; });
         groupMatches.forEach(m => {
             const score = scores[m.id];
-            if (score && score.home !== undefined && score.away !== undefined) {
+            if (score && score.home !== undefined) {
                 const hg = score.home, ag = score.away;
-                const home = m.home, away = m.away;
-                stats[home].gf += hg; stats[home].ga += ag;
-                stats[away].gf += ag; stats[away].ga += hg;
-                stats[home].played++; stats[away].played++;
-                if (hg > ag) { stats[home].wins++; stats[home].points += 3; stats[away].losses++; }
-                else if (hg < ag) { stats[away].wins++; stats[away].points += 3; stats[home].losses++; }
-                else { stats[home].draws++; stats[away].draws++; stats[home].points += 1; stats[away].points += 1; }
+                stats[m.home].gf += hg; stats[m.home].ga += ag;
+                stats[m.away].gf += ag; stats[m.away].ga += hg;
+                stats[m.home].played++; stats[m.away].played++;
+                if (hg > ag) { stats[m.home].wins++; stats[m.home].points += 3; stats[m.away].losses++; }
+                else if (hg < ag) { stats[m.away].wins++; stats[m.away].points += 3; stats[m.home].losses++; }
+                else { stats[m.home].draws++; stats[m.away].draws++; stats[m.home].points++; stats[m.away].points++; }
             }
         });
         let table = teams.map(team => ({ name:team, ...stats[team] }));
@@ -554,7 +540,7 @@
             const homeVal = (currentScore && currentScore.home !== undefined) ? currentScore.home : '—';
             const awayVal = (currentScore && currentScore.away !== undefined) ? currentScore.away : '—';
             html += `
-                <div class="match-card" data-match-id="${match.id}">
+                <div class="match-card">
                     <div class="card-header">
                         <span class="group-badge"><i class="fas fa-users"></i> ГРУППА ${match.group}</span>
                         <div class="datetime"><i class="far fa-calendar-alt"></i> ${match.date} ${match.time}</div>
@@ -580,25 +566,21 @@
     }
 
     async function refreshData() {
-        const refreshBtn = document.getElementById('refreshDataBtn');
-        refreshBtn.disabled = true;
-        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
-        
-        await loadScoresFromCSV();
-        
+        const btn = document.getElementById('refreshDataBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+        await loadScoresFromSheet();
         const activeGroup = document.querySelector('.filter-btn.active').getAttribute('data-group');
         renderMatches(activeGroup);
         renderExpertsRank();
         if (activeGroup !== 'all') renderStandings(activeGroup);
-        
-        refreshBtn.disabled = false;
-        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Обновить данные';
-        
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Обновить данные';
         const msg = document.createElement('div');
-        msg.textContent = '✅ Данные из Google Sheets обновлены!';
-        msg.style.cssText = 'position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#2dd4bf; color:#05100f; padding:0.5rem 1rem; border-radius:40px; z-index:1000;';
+        msg.textContent = '✅ Данные обновлены из Google Sheets!';
+        msg.style.cssText = 'position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:#2dd4bf; color:#05100f; padding:0.3rem 1rem; border-radius:40px; z-index:1000;';
         document.body.appendChild(msg);
-        setTimeout(() => msg.remove(), 3000);
+        setTimeout(() => msg.remove(), 2000);
     }
 
     function refresh(group) {
@@ -608,27 +590,21 @@
         else document.getElementById("standingsContainer").innerHTML = '';
     }
 
-    // Фильтры групп
+    // Фильтры
     const btns = document.querySelectorAll(".filter-btn");
-    function setActive(grp) {
-        btns.forEach(btn => {
-            if (btn.getAttribute("data-group") === grp) btn.classList.add("active");
-            else btn.classList.remove("active");
-        });
-    }
     btns.forEach(btn => {
         btn.addEventListener("click", () => {
+            btns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
             const grp = btn.getAttribute("data-group");
-            setActive(grp);
             refresh(grp === "all" ? "all" : grp);
         });
     });
 
     document.getElementById("refreshDataBtn").addEventListener("click", refreshData);
 
-    // Запуск
     window.onload = async () => {
-        await loadScoresFromCSV();
+        await loadScoresFromSheet();
         refresh("all");
     };
 </script>
