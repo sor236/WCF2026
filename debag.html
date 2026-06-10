@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Отладка CSV — ЧМ 2026</title>
+    <style>
+        body { background: #0a1f1e; color: #e0e0e0; font-family: monospace; padding: 2rem; }
+        .raw { background: #1e2f2c; padding: 1rem; border-radius: 1rem; overflow-x: auto; margin-top: 1rem; }
+        table { border-collapse: collapse; width: 100%; }
+        td, th { border: 1px solid #2dd4bf80; padding: 0.3rem; text-align: left; vertical-align: top; }
+        .highlight { background: #ffaa3340; }
+    </style>
+</head>
+<body>
+<h2>📄 Содержимое WCF2026.csv (первые 10 строк)</h2>
+<div id="output" class="raw">Загрузка...</div>
+<script>
+    fetch('WCF2026.csv')
+        .then(r => r.text())
+        .then(text => {
+            const lines = text.split(/\r?\n/);
+            let html = '<table><thead><tr><th>№ строки</th><th>Сырая строка</th><th>Колонки (разбитые по запятым)</th></tr></thead><tbody>';
+            for (let i = 0; i < Math.min(lines.length, 15); i++) {
+                const rawLine = lines[i];
+                const cols = rawLine.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                html += `<tr>
+                            <td>${i}</td>
+                            <td style="max-width:300px; word-break:break-all;">${escapeHtml(rawLine)}</td>
+                            <td>${cols.map((c, idx) => `<b>${idx}:</b> ${c || '—'}<br>`).join('')}</td>
+                         </tr>`;
+            }
+            html += '</tbody></table>';
+            document.getElementById('output').innerHTML = html;
+        })
+        .catch(err => {
+            document.getElementById('output').innerHTML = `Ошибка загрузки: ${err.message}`;
+        });
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+</script>
+</body>
+</html>
