@@ -3,17 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>ЧМ 2026 · Рейтинг экспертов (XLSX)</title>
+    <title>ЧМ 2026 · Рейтинг экспертов (CSV)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Подключаем библиотеку для работы с Excel с двумя CDN на случай блокировки -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-    <script>
-        // fallback если первый не загрузился
-        if (typeof XLSX === 'undefined') {
-            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js"><\/script>');
-        }
-    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -76,119 +68,82 @@
 <div class="app">
     <div class="hero">
         <h1><i class="fas fa-futbol"></i> ЧМ 2026 · Рейтинг экспертов</h1>
-        <div class="sub">Данные из WCF2026.xlsx (автоопределение колонок)</div>
+        <div class="sub">Данные из WCF2026.csv (CSV в репозитории)</div>
     </div>
     <div id="debugPanel" class="debug"></div>
     <div id="expertsRankContainer" class="experts-rank"></div>
     <div class="filter-bar" id="filterBar"></div>
     <div id="standingsContainer" class="standings"></div>
     <div class="matches-grid" id="matchesContainer"></div>
-    <div class="footer-note">Данные загружены из Excel-файла. Нажмите «Обновить» после изменения файла.</div>
+    <div class="footer-note">Данные загружены из CSV-файла. Нажмите «Обновить» после изменения файла.</div>
 </div>
 <div class="bottom-panel">
     <button id="refreshBtn" class="bottom-btn"><i class="fas fa-sync-alt"></i> Обновить данные</button>
 </div>
 
 <script>
-    // Ждём загрузки библиотеки
-    let attempts = 0;
-    function waitForXLSX() {
-        if (typeof XLSX !== 'undefined') {
-            loadFromXLSX();
-        } else if (attempts < 10) {
-            attempts++;
-            setTimeout(waitForXLSX, 500);
-        } else {
-            document.getElementById('debugPanel').innerHTML = '❌ Библиотека XLSX не загрузилась. Проверьте интернет-соединение или используйте другой браузер.';
-        }
-    }
-
-    const XLSX_FILE = 'WCF2026.xlsx';
+    const CSV_FILE = 'WCF2026.csv';
     let matches = [];
     let experts = [];
     let currentGroup = 'all';
 
-    async function loadFromXLSX() {
+    async function loadFromCSV() {
         const debugDiv = document.getElementById('debugPanel');
-        debugDiv.innerHTML = 'Загрузка файла WCF2026.xlsx...';
+        debugDiv.innerHTML = 'Загрузка файла WCF2026.csv...';
         try {
-            const response = await fetch(XLSX_FILE);
-            if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден или недоступен`);
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-            debugDiv.innerHTML += `\nФайл прочитан. Всего строк: ${rows.length}`;
+            const response = await fetch(CSV_FILE);
+            if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден`);
+            const csvText = await response.text();
+            const rows = csvText.split(/\r?\n/).filter(row => row.trim().length > 0);
+            debugDiv.innerHTML += `\nПрочитано строк: ${rows.length}`;
 
-            if (rows.length < 3) throw new Error('Недостаточно строк (меньше 3)');
+            if (rows.length < 3) throw new Error('Недостаточно строк');
 
-            // Ищем строку с заголовками
-            let headerRow = null;
-            let dataStart = 0;
-            for (let i = 0; i < Math.min(rows.length, 15); i++) {
-                const row = rows[i];
-                if (row && row.some(cell => {
-                    const s = (cell || '').toString().toLowerCase();
-                    return s.includes('гр.') || s.includes('групп') || s === 'a' || s === 'b' || s === 'c';
-                })) {
-                    headerRow = row;
-                    dataStart = i + 1;
-                    break;
-                }
-            }
-            if (!headerRow) {
-                for (let i = 0; i < rows.length; i++) {
-                    if (rows[i] && rows[i].length > 0 && rows[i].some(c => c && c.toString().trim())) {
-                        headerRow = rows[i];
-                        dataStart = i + 1;
-                        break;
-                    }
-                }
-            }
-            if (!headerRow) throw new Error('Не удалось найти строку с заголовками');
-            debugDiv.innerHTML += `\nЗаголовки: ${headerRow.join(' | ')}`;
+            // Заголовки (первая строка)
+            const headers = rows[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+            debugDiv.innerHTML += `\nЗаголовки: ${headers.join(' | ')}`;
 
             function findCol(keywords) {
-                for (let i = 0; i < headerRow.length; i++) {
-                    const cell = (headerRow[i] || '').toString().toLowerCase();
-                    if (keywords.some(k => cell.includes(k))) return i;
+                for (let i = 0; i < headers.length; i++) {
+                    const h = headers[i].toLowerCase();
+                    if (keywords.some(k => h.includes(k))) return i;
                 }
                 return -1;
             }
 
-            const groupCol = findCol(['гр.', 'групп', 'группа', 'group']);
+            const groupCol = findCol(['гр.', 'групп', 'group']);
             const dateCol = findCol(['дата', 'date']);
             const timeCol = findCol(['время', 'time']);
             const homeCol = findCol(['хозяева', 'хозя', 'home', 'команда1']);
             const awayCol = findCol(['гости', 'гост', 'away', 'команда2']);
-            const scoreHomeCol = findCol(['счет хозяев', 'счёт хозяев', 'home score', 'счёт хозя', 'счет хозя']);
-            const scoreAwayCol = findCol(['счет гостей', 'счёт гостей', 'away score', 'счёт гост', 'счет гост']);
+            const scoreHomeCol = findCol(['счет хозяев', 'счёт хозяев', 'home score']);
+            const scoreAwayCol = findCol(['счет гостей', 'счёт гостей', 'away score']);
 
             debugDiv.innerHTML += `\n\nНайденные колонки:
-            - группа: ${groupCol !== -1 ? `индекс ${groupCol} (${headerRow[groupCol]})` : '❌ не найдена'}
-            - дата: ${dateCol !== -1 ? `индекс ${dateCol} (${headerRow[dateCol]})` : '❌ не найдена'}
-            - время: ${timeCol !== -1 ? `индекс ${timeCol} (${headerRow[timeCol]})` : '❌ не найдена'}
-            - хозяева: ${homeCol !== -1 ? `индекс ${homeCol} (${headerRow[homeCol]})` : '❌ не найдена'}
-            - гости: ${awayCol !== -1 ? `индекс ${awayCol} (${headerRow[awayCol]})` : '❌ не найдена'}
-            - счёт хозяев: ${scoreHomeCol !== -1 ? `индекс ${scoreHomeCol} (${headerRow[scoreHomeCol]})` : '❌ не найдена'}
-            - счёт гостей: ${scoreAwayCol !== -1 ? `индекс ${scoreAwayCol} (${headerRow[scoreAwayCol]})` : '❌ не найдена'}`;
+            - группа: ${groupCol !== -1 ? `индекс ${groupCol} (${headers[groupCol]})` : '❌ не найдена'}
+            - дата: ${dateCol !== -1 ? `индекс ${dateCol} (${headers[dateCol]})` : '❌ не найдена'}
+            - время: ${timeCol !== -1 ? `индекс ${timeCol} (${headers[timeCol]})` : '❌ не найдена'}
+            - хозяева: ${homeCol !== -1 ? `индекс ${homeCol} (${headers[homeCol]})` : '❌ не найдена'}
+            - гости: ${awayCol !== -1 ? `индекс ${awayCol} (${headers[awayCol]})` : '❌ не найдена'}
+            - счёт хозяев: ${scoreHomeCol !== -1 ? `индекс ${scoreHomeCol} (${headers[scoreHomeCol]})` : '❌ не найдена'}
+            - счёт гостей: ${scoreAwayCol !== -1 ? `индекс ${scoreAwayCol} (${headers[scoreAwayCol]})` : '❌ не найдена'}`;
 
+            // Эксперты
             const expertNames = ['антон', 'георгий', 'герман', 'олег', 'тимур', 'юрий'];
-            let expertHomeCols = [];
-            let expertAwayCols = [];
+            let expertHomeCols = [], expertAwayCols = [];
             for (let name of expertNames) {
                 let hIdx = -1, aIdx = -1;
-                for (let i = 0; i < headerRow.length; i++) {
-                    const cell = (headerRow[i] || '').toString().toLowerCase();
-                    if (cell.includes(name)) {
-                        if (cell.includes('хозя') || cell.includes('home')) hIdx = i;
-                        else if (cell.includes('гост') || cell.includes('away')) aIdx = i;
+                for (let i = 0; i < headers.length; i++) {
+                    const h = headers[i].toLowerCase();
+                    if (h.includes(name)) {
+                        if (h.includes('хозя') || h.includes('home')) hIdx = i;
+                        else if (h.includes('гост') || h.includes('away')) aIdx = i;
                     }
                 }
                 if (hIdx === -1 && aIdx === -1) {
-                    for (let i = 0; i < headerRow.length; i++) {
-                        const cell = (headerRow[i] || '').toString().toLowerCase();
-                        if (cell === name || (cell.includes(name) && (cell.includes('прогноз') || cell.includes('pred')))) {
+                    for (let i = 0; i < headers.length; i++) {
+                        const h = headers[i].toLowerCase();
+                        if (h === name || (h.includes(name) && (h.includes('прогноз') || h.includes('pred')))) {
                             hIdx = i;
                             aIdx = -2;
                             break;
@@ -199,40 +154,32 @@
                 expertAwayCols.push(aIdx);
             }
             experts = expertNames.map(n => n.charAt(0).toUpperCase() + n.slice(1));
-            debugDiv.innerHTML += `\n\nЭксперты: ${experts.join(', ')}`;
-            debugDiv.innerHTML += `\nКолонки экспертов (home/away): ${expertHomeCols.map((v,i) => `${experts[i]}: ${v} / ${expertAwayCols[i]}`).join(', ')}`;
 
+            // Парсим данные (строки начиная с 1)
             matches = [];
-            for (let i = dataStart; i < rows.length; i++) {
-                const row = rows[i];
-                if (!row || row.length === 0) continue;
-                const group = groupCol !== -1 ? (row[groupCol] || '').toString().trim() : '';
+            for (let i = 1; i < rows.length; i++) {
+                const cols = rows[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                if (cols.length < 2) continue;
+                const group = groupCol !== -1 ? cols[groupCol] : '';
                 if (group === '') continue;
-                const dateRaw = dateCol !== -1 ? row[dateCol] : '';
-                let date = '';
-                if (dateRaw && typeof dateRaw === 'number') {
-                    const jsDate = XLSX.SSF.parse_date_code(dateRaw);
-                    date = `${jsDate.y}-${String(jsDate.m).padStart(2,'0')}-${String(jsDate.d).padStart(2,'0')}`;
-                } else if (dateRaw) {
-                    date = dateRaw.toString().split('T')[0];
-                }
-                const time = timeCol !== -1 ? (row[timeCol] || '').toString().trim() : '';
-                const home = homeCol !== -1 ? (row[homeCol] || '').toString().trim() : '';
-                const away = awayCol !== -1 ? (row[awayCol] || '').toString().trim() : '';
+                const date = dateCol !== -1 ? cols[dateCol] : '';
+                const time = timeCol !== -1 ? cols[timeCol] : '';
+                const home = homeCol !== -1 ? cols[homeCol] : '';
+                const away = awayCol !== -1 ? cols[awayCol] : '';
                 let score = null;
                 if (scoreHomeCol !== -1 && scoreAwayCol !== -1) {
-                    const h = parseInt(row[scoreHomeCol]);
-                    const a = parseInt(row[scoreAwayCol]);
+                    const h = parseInt(cols[scoreHomeCol]);
+                    const a = parseInt(cols[scoreAwayCol]);
                     if (!isNaN(h) && !isNaN(a)) score = `${h}:${a}`;
                 }
                 const predictions = [];
                 for (let e = 0; e < experts.length; e++) {
                     let pred = '';
                     if (expertHomeCols[e] !== -1 && expertAwayCols[e] === -2) {
-                        pred = (row[expertHomeCols[e]] || '').toString().trim();
+                        pred = cols[expertHomeCols[e]] || '';
                     } else if (expertHomeCols[e] !== -1 && expertAwayCols[e] !== -1 && expertAwayCols[e] !== -2) {
-                        const h = parseInt(row[expertHomeCols[e]]);
-                        const a = parseInt(row[expertAwayCols[e]]);
+                        const h = parseInt(cols[expertHomeCols[e]]);
+                        const a = parseInt(cols[expertAwayCols[e]]);
                         if (!isNaN(h) && !isNaN(a)) pred = `${h}:${a}`;
                     }
                     predictions.push(pred || '—');
@@ -247,7 +194,7 @@
             renderStandings(currentGroup);
             renderMatches(currentGroup);
         } catch (err) {
-            debugDiv.innerHTML += `\n\n❌ ОШИБКА: ${err.message}\nПроверьте консоль (F12).`;
+            debugDiv.innerHTML += `\n\n❌ ОШИБКА: ${err.message}\nПроверьте, что файл WCF2026.csv загружен и имеет правильный формат.`;
             console.error(err);
         }
     }
@@ -307,7 +254,7 @@
             html += `<tr class="${medal}"><td>${idx+1}</td><td class="expert-name">${s.name}</td>
                      <td><strong>${s.points}</strong></td><td>${s.exact}</td><td>${s.diff}</td><td>${s.outcome}</td></tr>`;
         });
-        html += `</tbody></table></div>`;
+        html += `</tbody><tr></div>`;
         document.getElementById('expertsRankContainer').innerHTML = html;
     }
 
@@ -376,13 +323,12 @@
         const btn = document.getElementById('refreshBtn');
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
-        await loadFromXLSX();
+        await loadFromCSV();
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-sync-alt"></i> Обновить данные';
     });
 
-    // Старт после загрузки библиотеки
-    window.addEventListener('load', waitForXLSX);
+    loadFromCSV();
 </script>
 </body>
 </html>
