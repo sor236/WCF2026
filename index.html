@@ -1,13 +1,13 @@
-CSV_URL<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>ЧМ 2026 · Рейтинг экспертов (данные из CSV)</title>
+    <title>ЧМ 2026 · Динамическая презентация (XLSX)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
-        /* Полные стили — как в предыдущей рабочей версии (карточки, таблицы, адаптив) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
@@ -28,673 +28,328 @@ CSV_URL<!DOCTYPE html>
             opacity: 0.2;
             z-index: 0;
         }
-        .app {
-            position: relative;
-            z-index: 2;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem 4rem;
-        }
+        .app { position: relative; z-index: 2; max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
         .hero { text-align: center; margin-bottom: 2rem; }
-        .hero h1 { font-size: 2.8rem; font-weight: 800; background: linear-gradient(135deg, #FFFFFF, #b9fbc0, #2dd4bf); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero h1 { font-size: 2.8rem; font-weight: 800; background: linear-gradient(135deg, #fff, #b9fbc0, #2dd4bf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .hero .sub { font-size: 1rem; color: #b6e6e0; margin-top: 0.5rem; }
-        .experts-rank {
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(12px);
-            border-radius: 1.5rem;
-            padding: 1rem;
-            margin-bottom: 2rem;
-            border: 1px solid rgba(45,212,191,0.4);
-            overflow-x: auto;
-        }
+        .experts-rank { background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); border-radius: 1.5rem; padding: 1rem; margin-bottom: 2rem; border: 1px solid rgba(45,212,191,0.4); overflow-x: auto; }
         .experts-rank h3 { margin-bottom: 0.8rem; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
-        .rank-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-        }
-        .rank-table th, .rank-table td {
-            padding: 0.6rem 0.3rem;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .rank-table th {
-            background: rgba(45,212,191,0.25);
-            font-weight: 700;
-        }
-        .rank-table .expert-name {
-            text-align: left;
-            font-weight: 600;
-            font-size: 1rem;
-        }
+        .rank-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .rank-table th, .rank-table td { padding: 0.6rem 0.3rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .rank-table th { background: rgba(45,212,191,0.25); font-weight: 700; }
+        .rank-table .expert-name { text-align: left; font-weight: 600; font-size: 1rem; }
         .rank-1 { background: linear-gradient(90deg, #ffd70020, transparent); font-weight: bold; }
         .rank-2 { background: linear-gradient(90deg, #c0c0c020, transparent); }
         .rank-3 { background: linear-gradient(90deg, #cd7f3220, transparent); }
-
-        .filter-bar {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 0.6rem;
-            margin-bottom: 2rem;
-        }
-        .filter-btn {
-            background: rgba(20, 35, 33, 0.7);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(72, 187, 160, 0.4);
-            padding: 0.5rem 1.2rem;
-            border-radius: 60px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: #e2f2ef;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .filter-btn.active {
-            background: #2dd4bf;
-            border-color: #2dd4bf;
-            color: #05100f;
-            box-shadow: 0 5px 12px rgba(45,212,191,0.3);
-        }
-        .standings {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
-            border-radius: 1.5rem;
-            padding: 1rem;
-            margin-bottom: 2rem;
-            overflow-x: auto;
-            border: 1px solid rgba(45,212,191,0.3);
-        }
-        .standings h3 {
-            margin-bottom: 0.8rem;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .standings table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-        }
-        .standings th, .standings td {
-            padding: 0.5rem 0.3rem;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .standings th {
-            background: rgba(45,212,191,0.2);
-            font-weight: 600;
-        }
-        .team-name {
-            text-align: left;
-            font-weight: 500;
-        }
-        .matches-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-            gap: 1.5rem;
-        }
-        .match-card {
-            background: rgba(12, 27, 25, 0.75);
-            backdrop-filter: blur(12px);
-            border-radius: 1.5rem;
-            border: 1px solid rgba(45,212,191,0.25);
-            transition: transform 0.2s, box-shadow 0.2s;
-            overflow: hidden;
-        }
-        .match-card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(45,212,191,0.6);
-        }
-        .card-header {
-            background: rgba(0,0,0,0.4);
-            padding: 0.7rem 1rem;
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.7rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .group-badge {
-            background: #1e2f2c;
-            padding: 0.2rem 0.8rem;
-            border-radius: 30px;
-            font-weight: 700;
-        }
-        .teams {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            gap: 0.5rem;
-        }
-        .team {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 5px;
-            background: rgba(0,0,0,0.3);
-            padding: 0.4rem;
-            border-radius: 2rem;
-            flex: 1;
-            word-break: break-word;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
+        .filter-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-bottom: 2rem; }
+        .filter-btn { background: rgba(20,35,33,0.7); backdrop-filter: blur(8px); border: 1px solid rgba(72,187,160,0.4); padding: 0.5rem 1.2rem; border-radius: 60px; font-weight: 600; font-size: 0.85rem; color: #e2f2ef; cursor: pointer; transition: 0.2s; }
+        .filter-btn.active { background: #2dd4bf; border-color: #2dd4bf; color: #05100f; box-shadow: 0 5px 12px rgba(45,212,191,0.3); }
+        .standings { background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); border-radius: 1.5rem; padding: 1rem; margin-bottom: 2rem; overflow-x: auto; border: 1px solid rgba(45,212,191,0.3); }
+        .standings h3 { margin-bottom: 0.8rem; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+        .standings table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .standings th, .standings td { padding: 0.5rem 0.3rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .standings th { background: rgba(45,212,191,0.2); font-weight: 600; }
+        .team-name { text-align: left; font-weight: 500; }
+        .matches-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem; }
+        .match-card { background: rgba(12,27,25,0.75); backdrop-filter: blur(12px); border-radius: 1.5rem; border: 1px solid rgba(45,212,191,0.25); transition: transform 0.2s; overflow: hidden; }
+        .match-card:hover { transform: translateY(-3px); }
+        .card-header { background: rgba(0,0,0,0.4); padding: 0.7rem 1rem; display: flex; justify-content: space-between; font-size: 0.7rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .group-badge { background: #1e2f2c; padding: 0.2rem 0.8rem; border-radius: 30px; font-weight: 700; }
+        .teams { display: flex; justify-content: space-between; align-items: center; padding: 1rem; gap: 0.5rem; }
+        .team { display: flex; flex-direction: column; align-items: center; gap: 5px; background: rgba(0,0,0,0.3); padding: 0.4rem; border-radius: 2rem; flex: 1; text-align: center; font-size: 0.9rem; font-weight: 600; word-break: break-word; }
         .team i { font-size: 1.2rem; }
-        .vs {
-            background: #2dd4bf20;
-            padding: 0.2rem 0.8rem;
-            border-radius: 30px;
-            font-weight: 700;
-        }
-        .score-inputs {
-            display: flex;
-            justify-content: center;
-            gap: 0.8rem;
-            margin: 0.5rem 1rem;
-            padding: 0.4rem;
-            background: rgba(0,0,0,0.4);
-            border-radius: 2rem;
-        }
-        .score-inputs input {
-            width: 70px;
-            padding: 0.3rem;
-            text-align: center;
-            font-size: 1rem;
-            font-weight: bold;
-            background: #0c1f1c;
-            border: 1px solid #2dd4bf;
-            color: #f0f3f8;
-            border-radius: 1rem;
-            font-family: monospace;
-        }
-        .score-inputs input:disabled {
-            opacity: 0.6;
-            background: #1a2a27;
-            cursor: not-allowed;
-        }
-        .forecast-title {
-            font-size: 0.65rem;
-            margin: 0.3rem 1rem;
-            color: #8dcfc6;
-        }
-        .experts-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            padding: 0.3rem 1rem 1rem;
-            justify-content: space-between;
-        }
-        .expert-pred {
-            background: #0c1f1c;
-            border-radius: 1.5rem;
-            flex: 1;
-            text-align: center;
-            padding: 0.3rem 0;
-            font-size: 0.7rem;
-        }
-        .expert-name { font-size: 0.65rem; }
-        .expert-score { font-weight: 800; font-family: monospace; }
-        .bottom-panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(8px);
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 0.8rem;
-            padding: 0.6rem;
-            border-top: 1px solid #2dd4bf;
-            z-index: 100;
-        }
-        .bottom-btn {
-            background: rgba(45,212,191,0.8);
-            border: none;
-            padding: 0.4rem 1rem;
-            border-radius: 60px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            color: #05100f;
-            cursor: pointer;
-        }
-        .bottom-btn.unlock { background: #ffaa33; }
-        .bottom-btn.reset { background: rgba(200,60,50,0.9); color: white; }
-        .footer-note {
-            text-align: center;
-            margin-top: 2rem;
-            font-size: 0.7rem;
-            opacity: 0.6;
-            margin-bottom: 3rem;
-        }
-        @media (max-width: 700px) {
-            .app { padding: 1rem; }
-            .team { font-size: 0.75rem; }
-            .expert-score { font-size: 0.8rem; }
-            .score-inputs input { width: 55px; }
-            .bottom-panel { gap: 0.5rem; }
-            .bottom-btn { padding: 0.3rem 0.8rem; font-size: 0.7rem; }
-        }
+        .vs { background: #2dd4bf20; padding: 0.2rem 0.8rem; border-radius: 30px; font-weight: 700; }
+        .score { text-align: center; font-size: 1.2rem; font-weight: bold; margin: 0.5rem 1rem; padding: 0.3rem; background: rgba(0,0,0,0.3); border-radius: 2rem; color: #facc15; }
+        .forecast-title { font-size: 0.65rem; margin: 0.3rem 1rem; color: #8dcfc6; }
+        .experts-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.3rem 1rem 1rem; justify-content: space-between; }
+        .expert-pred { background: #0c1f1c; border-radius: 1rem; flex: 1; text-align: center; padding: 0.3rem; font-size: 0.7rem; }
+        .bottom-panel { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; justify-content: center; gap: 1rem; padding: 0.6rem; border-top: 1px solid #2dd4bf; z-index: 100; }
+        .bottom-btn { background: #ffaa33; border: none; padding: 0.4rem 1.2rem; border-radius: 60px; font-weight: 600; font-size: 0.8rem; color: #05100f; cursor: pointer; }
+        .footer-note { text-align: center; margin-top: 2rem; font-size: 0.7rem; opacity: 0.6; margin-bottom: 3rem; }
+        @media (max-width: 700px) { .team { font-size: 0.75rem; } .score { font-size: 1rem; } }
     </style>
 </head>
 <body>
 <div class="app">
     <div class="hero">
         <h1><i class="fas fa-futbol"></i> ЧМ 2026 · Рейтинг экспертов</h1>
-        <div class="sub">Данные загружены из Google Таблицы (CSV)</div>
+        <div class="sub">Данные из XLSX-файла (WCF2026.xlsx) · Групповой этап</div>
     </div>
-
     <div id="expertsRankContainer" class="experts-rank"></div>
-
     <div class="filter-bar" id="filterBar"></div>
-
-    <div id="standingsContainer"></div>
+    <div id="standingsContainer" class="standings"></div>
     <div class="matches-grid" id="matchesContainer"></div>
-    <div class="footer-note">
-        <i class="fas fa-chart-line"></i> Для изменения счетов нажмите "Редактировать", введите пароль и меняйте результаты.
-    </div>
+    <div class="footer-note">Данные загружены из Excel-файла. Нажмите «Обновить» после изменения файла.</div>
 </div>
-
-<div class="bottom-panel" id="bottomPanel">
-    <button id="unlockBtn" class="bottom-btn unlock"><i class="fas fa-lock"></i> Редактировать</button>
-    <button id="resetScoresBtn" class="bottom-btn reset"><i class="fas fa-undo-alt"></i> Сбросить все счета</button>
-    <span id="lockStatus">(заблокировано)</span>
+<div class="bottom-panel">
+    <button id="refreshBtn" class="bottom-btn"><i class="fas fa-sync-alt"></i> Обновить данные</button>
 </div>
 
 <script>
-    // ==================== НАСТРОЙКА ====================
-    // Замените на вашу ссылку опубликованного CSV (Файл → Опубликовать в интернете → CSV)
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTiW8f1X4s-HEU54NEiIVmesOJ6mKAZLXQBzdcwEVhDFW8tY9h3XeD2C7nc-FpQTclyTgZ9sBGLgxg4/pub?gid=0&single=true&output=csv';
-    // ===================================================
+    // ==================== НАСТРОЙКИ ====================
+    const XLSX_FILE = 'WCF2026.xlsx';    // имя файла в репозитории
+    // =================================================
 
-    const EDIT_PASSWORD = "admin123";
-    let isUnlocked = false;
+    let matches = [];      // массив объектов матча
+    let experts = [];      // массив имён экспертов
+    let currentGroup = 'all';
 
-    // Хранилище данных, загруженных из CSV
-    let matches = [];          // массив объектов матча: { group, date, time, home, away, pred, scoreHome, scoreAway }
-    let experts = [];         // список экспертов (из заголовков)
-    let scores = {};          // id -> { home, away } (для редактирования, начальные из CSV)
-
-    // ---- Вспомогательные функции парсинга CSV ----
-    function parseCSV(csvText) {
-        const rows = csvText.split(/\r?\n/);
-        if (rows.length < 2) return [];
-        const headers = rows[0].split(',').map(h => h.replace(/^["']|["']$/g, '').trim());
-        const data = [];
-        for (let i = 1; i < rows.length; i++) {
-            if (!rows[i].trim()) continue;
-            const values = rows[i].split(',').map(v => v.replace(/^["']|["']$/g, '').trim());
-            const obj = {};
-            headers.forEach((h, idx) => { obj[h] = values[idx] || ''; });
-            data.push(obj);
-        }
-        return { headers, data };
-    }
-
-    // Автоопределение колонок
-    function detectColumns(headers) {
-        const lowerHeaders = headers.map(h => h.toLowerCase());
-        const find = (patterns) => headers.find((_, idx) => patterns.some(p => lowerHeaders[idx].includes(p)));
-        
-        const groupCol = find(['групп', 'group']);
-        const dateCol = find(['дата', 'date']);
-        const timeCol = find(['время', 'time']);
-        const homeCol = find(['хозя', 'home', 'команда1']);
-        const awayCol = find(['гост', 'away', 'команда2']);
-        const scoreHomeCol = find(['голы хозя', 'счёт хозя', 'home score']);
-        const scoreAwayCol = find(['голы гост', 'счёт гост', 'away score']);
-        
-        // Прогнозы экспертов: ищем колонки, содержащие имена Антон, Георгий, Герман, Олег, Тимур, Юрий
-        const expertNames = [];
-        const expertCols = [];
-        const nameVariants = ['антон', 'anton', 'георгий', 'georgiy', 'герман', 'german', 'олег', 'oleg', 'тимур', 'timur', 'юрий', 'yuriy'];
-        for (let i = 0; i < headers.length; i++) {
-            const low = headers[i].toLowerCase();
-            for (let name of nameVariants) {
-                if (low.includes(name)) {
-                    expertNames.push(headers[i]);
-                    expertCols.push(i);
-                    break;
-                }
-            }
-        }
-        // Если не нашли по именам, ищем колонки с "прогноз" или "pred"
-        if (expertCols.length === 0) {
-            for (let i = 0; i < headers.length; i++) {
-                if (headers[i].toLowerCase().includes('прогноз') || headers[i].toLowerCase().includes('pred')) {
-                    expertCols.push(i);
-                    expertNames.push(headers[i]);
-                }
-            }
-        }
-        
-        return {
-            groupIdx: headers.indexOf(groupCol),
-            dateIdx: headers.indexOf(dateCol),
-            timeIdx: headers.indexOf(timeCol),
-            homeIdx: headers.indexOf(homeCol),
-            awayIdx: headers.indexOf(awayCol),
-            scoreHomeIdx: headers.indexOf(scoreHomeCol),
-            scoreAwayIdx: headers.indexOf(scoreAwayCol),
-            expertCols, expertNames
-        };
-    }
-
-    // Загрузка и обработка CSV
-    async function loadAndBuild() {
+    // Загрузка и парсинг XLSX
+    async function loadFromXLSX() {
         try {
-            const resp = await fetch(CSV_URL);
-            const csvText = await resp.text();
-            const { headers, data } = parseCSV(csvText);
-            const cols = detectColumns(headers);
-            
-            // Формируем массив матчей
-            matches = [];
-            experts = cols.expertNames.length ? cols.expertNames : ['Антон', 'Георгий', 'Герман', 'Олег', 'Тимур', 'Юрий'];
-            if (experts.length > 6) experts = experts.slice(0,6);
-            if (experts.length < 6) {
-                while (experts.length < 6) experts.push(`Эксперт${experts.length+1}`);
+            const response = await fetch(XLSX_FILE);
+            const arrayBuffer = await response.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+            if (!rows || rows.length < 3) throw new Error('Недостаточно строк в файле');
+
+            // Ищем строку с заголовками (вторая строка, индекс 1)
+            const headerRow = rows[1];
+            // Определяем индексы колонок по ключевым словам (регистронезависимо)
+            function findCol(keywords) {
+                for (let i = 0; i < headerRow.length; i++) {
+                    const cell = (headerRow[i] || '').toString().trim().toLowerCase();
+                    if (keywords.some(k => cell.includes(k))) return i;
+                }
+                return -1;
             }
-            
-            for (let row of data) {
-                const group = cols.groupIdx !== -1 ? row[headers[cols.groupIdx]] : '';
-                const date = cols.dateIdx !== -1 ? row[headers[cols.dateIdx]] : '';
-                const time = cols.timeIdx !== -1 ? row[headers[cols.timeIdx]] : '';
-                const home = cols.homeIdx !== -1 ? row[headers[cols.homeIdx]] : '';
-                const away = cols.awayIdx !== -1 ? row[headers[cols.awayIdx]] : '';
-                
-                // Счёт (если есть отдельные колонки)
-                let scoreHome = null, scoreAway = null;
-                if (cols.scoreHomeIdx !== -1 && cols.scoreAwayIdx !== -1) {
-                    scoreHome = parseInt(row[headers[cols.scoreHomeIdx]]);
-                    scoreAway = parseInt(row[headers[cols.scoreAwayIdx]]);
-                    if (isNaN(scoreHome)) scoreHome = null;
-                    if (isNaN(scoreAway)) scoreAway = null;
-                } else {
-                    // возможно, есть одна колонка "счёт" вида "2:1"
-                    const scoreCol = headers.find(h => h.toLowerCase().includes('счёт') || h.toLowerCase().includes('score'));
-                    if (scoreCol) {
-                        const scoreStr = row[scoreCol];
-                        if (scoreStr && scoreStr.includes(':')) {
-                            const parts = scoreStr.split(':');
-                            scoreHome = parseInt(parts[0]);
-                            scoreAway = parseInt(parts[1]);
+
+            const groupCol = findCol(['группа', 'гр.', 'group']);
+            const dateCol = findCol(['дата', 'date']);
+            const timeCol = findCol(['время', 'time']);
+            const homeCol = findCol(['хозяева', 'хозя', 'home']);
+            const awayCol = findCol(['гости', 'гост', 'away']);
+            const scoreHomeCol = findCol(['счет хозяев', 'счёт хозяев', 'home score']);
+            const scoreAwayCol = findCol(['счет гостей', 'счёт гостей', 'away score']);
+
+            // Ищем колонки экспертов: по именам
+            const expertNames = ['антон', 'георгий', 'герман', 'олег', 'тимур', 'юрий'];
+            const expertHomeCols = [];
+            const expertAwayCols = [];
+            for (let name of expertNames) {
+                let homeIdx = -1, awayIdx = -1;
+                for (let i = 0; i < headerRow.length; i++) {
+                    const cell = (headerRow[i] || '').toString().trim().toLowerCase();
+                    if (cell.includes(name)) {
+                        if (cell.includes('хозя') || cell.includes('home')) homeIdx = i;
+                        else if (cell.includes('гост') || cell.includes('away')) awayIdx = i;
+                    }
+                }
+                // Если не нашли раздельные колонки, пробуем одну колонку с форматом "X:Y"
+                if (homeIdx === -1 && awayIdx === -1) {
+                    for (let i = 0; i < headerRow.length; i++) {
+                        const cell = (headerRow[i] || '').toString().trim().toLowerCase();
+                        if (cell.includes(name) && (cell.includes('прогноз') || cell.includes('pred'))) {
+                            homeIdx = i; // будем использовать одну колонку
+                            awayIdx = -2; // маркер одиночной
+                            break;
                         }
                     }
                 }
-                
-                // Прогнозы экспертов
-                let pred = [];
-                for (let i = 0; i < experts.length; i++) {
-                    let predStr = '';
-                    if (i < cols.expertCols.length) {
-                        predStr = row[headers[cols.expertCols[i]]] || '';
-                    } else {
-                        predStr = '';
-                    }
-                    // если прогноз в формате "X:Y" — хорошо, иначе пробуем объединить две колонки (не поддерживается)
-                    if (!predStr.includes(':') && predStr.match(/^\d+$/)) {
-                        // возможно, это только одна цифра — попробуем найти вторую колонку рядом
-                        // упростим: оставляем как есть
-                    }
-                    pred.push(predStr);
+                expertHomeCols.push(homeIdx);
+                expertAwayCols.push(awayIdx);
+            }
+            experts = expertNames.map(n => n.charAt(0).toUpperCase() + n.slice(1));
+
+            // Сбор данных, начиная с третьей строки (индекс 2), пока есть непустые группы
+            const dataRows = [];
+            for (let i = 2; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
+                const group = groupCol !== -1 ? (row[groupCol] || '').toString().trim() : '';
+                if (group === '') continue; // пустая строка
+                dataRows.push(row);
+            }
+
+            matches = [];
+            for (let row of dataRows) {
+                const group = groupCol !== -1 ? (row[groupCol] || '').toString().trim() : '';
+                const dateRaw = dateCol !== -1 ? (row[dateCol] || '') : '';
+                let date = dateRaw;
+                if (dateRaw && typeof dateRaw === 'number') {
+                    const jsDate = XLSX.SSF.parse_date_code(dateRaw);
+                    date = `${jsDate.y}-${String(jsDate.m).padStart(2,'0')}-${String(jsDate.d).padStart(2,'0')}`;
+                } else if (dateRaw && dateRaw.toString().includes('-')) {
+                    date = dateRaw.toString().split('T')[0];
                 }
-                // если все прогнозы пустые, оставляем null
-                if (pred.every(p => !p)) pred = null;
-                
+                const time = timeCol !== -1 ? (row[timeCol] || '').toString().trim() : '';
+                const home = homeCol !== -1 ? (row[homeCol] || '').toString().trim() : '';
+                const away = awayCol !== -1 ? (row[awayCol] || '').toString().trim() : '';
+                let score = null;
+                if (scoreHomeCol !== -1 && scoreAwayCol !== -1) {
+                    const h = parseInt(row[scoreHomeCol]);
+                    const a = parseInt(row[scoreAwayCol]);
+                    if (!isNaN(h) && !isNaN(a)) score = `${h}:${a}`;
+                }
+                // Прогнозы экспертов
+                let predictions = [];
+                for (let e = 0; e < experts.length; e++) {
+                    let predStr = '';
+                    if (expertHomeCols[e] !== -1 && expertAwayCols[e] === -2) {
+                        // одна колонка
+                        predStr = (row[expertHomeCols[e]] || '').toString().trim();
+                    } else if (expertHomeCols[e] !== -1 && expertAwayCols[e] !== -1) {
+                        const h = row[expertHomeCols[e]];
+                        const a = row[expertAwayCols[e]];
+                        if (h !== undefined && a !== undefined) {
+                            const hVal = parseInt(h);
+                            const aVal = parseInt(a);
+                            if (!isNaN(hVal) && !isNaN(aVal)) predStr = `${hVal}:${aVal}`;
+                            else predStr = '';
+                        }
+                    }
+                    predictions.push(predStr || '—');
+                }
                 matches.push({
                     group, date, time, home, away,
-                    scoreHome, scoreAway,
-                    pred: pred
+                    score: score,
+                    predictions: predictions
                 });
             }
-            
-            // Инициализация scores: если в CSV был счёт, используем его, иначе null
-            matches.forEach((m, idx) => {
-                if (m.scoreHome !== null && m.scoreAway !== null) {
-                    scores[idx] = { home: m.scoreHome, away: m.scoreAway };
-                } else {
-                    scores[idx] = null;
-                }
-            });
-            
+
             // Построение интерфейса
             buildFilterButtons();
             renderExpertsRank();
-            renderStandings(getCurrentGroup());
-            renderMatches(getCurrentGroup());
-            
+            renderStandings(currentGroup);
+            renderMatches(currentGroup);
         } catch (err) {
-            console.error('Ошибка загрузки CSV:', err);
-            document.getElementById('matchesContainer').innerHTML = '<div style="text-align:center; padding:2rem;">❌ Не удалось загрузить данные. Проверьте, что таблица опубликована как CSV и ссылка верна.</div>';
+            console.error(err);
+            document.getElementById('matchesContainer').innerHTML = `<div style="text-align:center; padding:2rem;">❌ Ошибка загрузки XLSX: ${err.message}<br>Убедитесь, что файл "${XLSX_FILE}" находится в той же папке и имеет правильную структуру.</div>`;
         }
     }
 
-    // ----- Остальные функции (рендер, очки, таблица) аналогичны предыдущим, но работают с matches -----
-    function getCurrentGroup() {
-        const active = document.querySelector('.filter-btn.active');
-        return active ? active.getAttribute('data-group') : 'all';
-    }
-    
     function buildFilterButtons() {
-        const groups = [...new Set(matches.map(m => m.group).filter(g => g))].sort();
+        const groups = [...new Set(matches.map(m => m.group).filter(g => g && g !== ''))].sort();
         const container = document.getElementById('filterBar');
+        if (groups.length === 0) { container.innerHTML = ''; return; }
         let html = `<button class="filter-btn active" data-group="all">🌍 Все группы</button>`;
-        groups.forEach(g => {
-            html += `<button class="filter-btn" data-group="${g}">Группа ${g}</button>`;
-        });
+        groups.forEach(g => { html += `<button class="filter-btn" data-group="${g}">Группа ${g}</button>`; });
         container.innerHTML = html;
-        // привязать события
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                const grp = btn.getAttribute('data-group');
-                renderMatches(grp);
-                renderExpertsRank();
-                if (grp !== 'all') renderStandings(grp);
-                else document.getElementById('standingsContainer').innerHTML = '';
+                currentGroup = btn.getAttribute('data-group');
+                renderMatches(currentGroup);
+                renderStandings(currentGroup);
             });
         });
     }
-    
+
+    // Подсчёт очков для эксперта (3-2-1)
     function getPoints(predStr, realHome, realAway) {
-        if (!predStr || predStr === "—") return 0;
-        const [predHome, predAway] = predStr.split(':').map(Number);
+        if (!predStr || predStr === '—') return 0;
+        const parts = predStr.split(':');
+        if (parts.length !== 2) return 0;
+        const predHome = parseInt(parts[0]);
+        const predAway = parseInt(parts[1]);
         if (isNaN(predHome) || isNaN(predAway)) return 0;
         if (predHome === realHome && predAway === realAway) return 3;
         const realDiff = realHome - realAway;
         const predDiff = predHome - predAway;
         if (realDiff === predDiff) return 2;
-        const realOutcome = (realHome > realAway) ? 1 : (realHome === realAway ? 0 : -1);
-        const predOutcome = (predHome > predAway) ? 1 : (predHome === predAway ? 0 : -1);
+        const realOutcome = realHome > realAway ? 1 : (realHome === realAway ? 0 : -1);
+        const predOutcome = predHome > predAway ? 1 : (predHome === predAway ? 0 : -1);
         if (realOutcome === predOutcome) return 1;
         return 0;
     }
-    
-    function computeExpertsStats() {
+
+    function renderExpertsRank() {
         let stats = experts.map(name => ({ name, points: 0, exact: 0, diff: 0, outcome: 0 }));
-        for (let i = 0; i < matches.length; i++) {
-            const score = scores[i];
-            if (!score || score.home === undefined) continue;
-            const realHome = score.home, realAway = score.away;
-            const predArr = matches[i].pred;
-            if (!predArr) continue;
-            for (let e = 0; e < experts.length; e++) {
-                const pts = getPoints(predArr[e], realHome, realAway);
-                if (pts === 3) { stats[e].points += 3; stats[e].exact++; }
-                else if (pts === 2) { stats[e].points += 2; stats[e].diff++; }
-                else if (pts === 1) { stats[e].points += 1; stats[e].outcome++; }
+        for (let match of matches) {
+            if (!match.score) continue;
+            const [realHome, realAway] = match.score.split(':').map(Number);
+            if (isNaN(realHome) || isNaN(realAway)) continue;
+            for (let i = 0; i < experts.length; i++) {
+                const pts = getPoints(match.predictions[i], realHome, realAway);
+                if (pts === 3) { stats[i].points += 3; stats[i].exact++; }
+                else if (pts === 2) { stats[i].points += 2; stats[i].diff++; }
+                else if (pts === 1) { stats[i].points += 1; stats[i].outcome++; }
             }
         }
         stats.sort((a,b) => b.points - a.points || b.exact - a.exact || b.diff - a.diff);
-        return stats;
-    }
-    
-    function renderExpertsRank() {
-        const container = document.getElementById("expertsRankContainer");
-        const stats = computeExpertsStats();
         let html = `<h3><i class="fas fa-trophy"></i> 🏆 Рейтинг экспертов (3 — точный счёт, 2 — разница, 1 — исход)</h3>
             <table class="rank-table"><thead><tr><th>Место</th><th>Эксперт</th><th>Очки</th><th>Точных<br>счетов</th><th>Разниц<br>(2 очка)</th><th>Исходов<br>(1 очко)</th></tr></thead><tbody>`;
-        stats.forEach((exp, idx) => {
-            let medalClass = (idx === 0) ? "rank-1" : (idx === 1) ? "rank-2" : (idx === 2) ? "rank-3" : "";
-            html += `<tr class="${medalClass}"><td>${idx+1}</td><td class="expert-name">${exp.name}</td>
-                     <td><strong>${exp.points}</strong></td><td>${exp.exact}</td><td>${exp.diff}</td><td>${exp.outcome}</td></tr>`;
+        stats.forEach((s, idx) => {
+            let medal = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : '';
+            html += `<tr class="${medal}"><td>${idx+1}</td><td class="expert-name">${s.name}</td>
+                     <td><strong>${s.points}</strong></td><td>${s.exact}</td><td>${s.diff}</td><td>${s.outcome}</td></tr>`;
         });
         html += `</tbody></table>`;
-        container.innerHTML = html;
+        document.getElementById('expertsRankContainer').innerHTML = html;
     }
-    
-    function computeStandings(group) {
-        const groupMatches = matches.filter((m, idx) => m.group === group);
-        const teamsSet = new Set();
-        groupMatches.forEach(m => { teamsSet.add(m.home); teamsSet.add(m.away); });
-        let teams = Array.from(teamsSet).sort();
-        const stats = {};
-        teams.forEach(team => { stats[team] = { played:0, wins:0, draws:0, losses:0, gf:0, ga:0, points:0 }; });
-        groupMatches.forEach((m, idx) => {
-            const score = scores[idx];
-            if (score && score.home !== undefined) {
-                const hg = score.home, ag = score.away;
-                stats[m.home].gf += hg; stats[m.home].ga += ag;
-                stats[m.away].gf += ag; stats[m.away].ga += hg;
-                stats[m.home].played++; stats[m.away].played++;
-                if (hg > ag) { stats[m.home].wins++; stats[m.home].points += 3; stats[m.away].losses++; }
-                else if (hg < ag) { stats[m.away].wins++; stats[m.away].points += 3; stats[m.home].losses++; }
-                else { stats[m.home].draws++; stats[m.away].draws++; stats[m.home].points++; stats[m.away].points++; }
-            }
-        });
-        let table = teams.map(team => ({ name:team, ...stats[team] }));
-        table.sort((a,b) => b.points - a.points || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf);
-        return table;
-    }
-    
+
     function renderStandings(group) {
-        const container = document.getElementById("standingsContainer");
-        if (group === "all") { container.innerHTML = ''; return; }
-        const standings = computeStandings(group);
-        if (!standings.length) return;
+        if (group === 'all') { document.getElementById('standingsContainer').innerHTML = ''; return; }
+        const groupMatches = matches.filter(m => m.group === group && m.score);
+        const teams = new Set();
+        groupMatches.forEach(m => { teams.add(m.home); teams.add(m.away); });
+        let stats = {};
+        for (let t of teams) stats[t] = { played:0, wins:0, draws:0, losses:0, gf:0, ga:0, points:0 };
+        for (let m of groupMatches) {
+            const [hg, ag] = m.score.split(':').map(Number);
+            const home = m.home, away = m.away;
+            stats[home].gf += hg; stats[home].ga += ag;
+            stats[away].gf += ag; stats[away].ga += hg;
+            stats[home].played++; stats[away].played++;
+            if (hg > ag) { stats[home].wins++; stats[home].points += 3; stats[away].losses++; }
+            else if (hg < ag) { stats[away].wins++; stats[away].points += 3; stats[home].losses++; }
+            else { stats[home].draws++; stats[away].draws++; stats[home].points += 1; stats[away].points += 1; }
+        }
+        let table = Object.entries(stats).map(([name, st]) => ({ name, ...st }));
+        table.sort((a,b) => b.points - a.points || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf);
         let html = `<div class="standings"><h3><i class="fas fa-table"></i> Группа ${group} · Турнирная таблица</h3>
             <table><thead><tr><th>Команда</th><th>И</th><th>В</th><th>Н</th><th>П</th><th>З</th><th>П</th><th>О</th></tr></thead><tbody>`;
-        standings.forEach(t => {
+        table.forEach(t => {
             html += `<tr><td class="team-name">${t.name}</td><td>${t.played}</td><td>${t.wins}</td><td>${t.draws}</td><td>${t.losses}</td><td>${t.gf}</td><td>${t.ga}</td><td>${t.points}</td></tr>`;
         });
         html += `</tbody></table></div>`;
-        container.innerHTML = html;
+        document.getElementById('standingsContainer').innerHTML = html;
     }
-    
+
     function renderMatches(group) {
-        const container = document.getElementById("matchesContainer");
-        let filtered = group === "all" ? matches : matches.filter((m, idx) => m.group === group);
+        let filtered = group === 'all' ? matches : matches.filter(m => m.group === group);
         if (filtered.length === 0) {
-            container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem;">Нет матчей в этой группе</div>`;
+            document.getElementById('matchesContainer').innerHTML = '<div style="text-align:center; padding:2rem;">Нет матчей</div>';
             return;
         }
-        let html = "";
-        filtered.forEach((match, filterIdx) => {
-            const originalIdx = matches.findIndex((m, i) => m === match); // грязно, но работает
-            let predictions = match.pred ? match.pred : experts.map(() => "—");
-            while (predictions.length < 6) predictions.push("—");
-            const currentScore = scores[originalIdx];
-            const homeVal = (currentScore && currentScore.home !== undefined) ? currentScore.home : '';
-            const awayVal = (currentScore && currentScore.away !== undefined) ? currentScore.away : '';
+        let html = '';
+        for (let m of filtered) {
+            const scoreDisplay = m.score ? m.score : 'TBD';
             html += `
-                <div class="match-card" data-match-id="${originalIdx}">
+                <div class="match-card">
                     <div class="card-header">
-                        <span class="group-badge"><i class="fas fa-users"></i> ГРУППА ${match.group}</span>
-                        <div class="datetime"><i class="far fa-calendar-alt"></i> ${match.date} ${match.time}</div>
+                        <span class="group-badge">ГРУППА ${m.group}</span>
+                        <span>${m.date} ${m.time}</span>
                     </div>
                     <div class="teams">
-                        <div class="team"><i class="fas fa-shield-alt"></i> ${match.home}</div>
+                        <div class="team"><i class="fas fa-shield-alt"></i> ${m.home}</div>
                         <div class="vs">VS</div>
-                        <div class="team">${match.away} <i class="fas fa-shield-alt"></i></div>
+                        <div class="team">${m.away} <i class="fas fa-shield-alt"></i></div>
                     </div>
-                    <div class="score-inputs">
-                        <input type="number" class="home-score" placeholder="0" value="${homeVal}" step="1" min="0" ${!isUnlocked ? 'disabled' : ''}>
-                        <span style="font-weight:bold">:</span>
-                        <input type="number" class="away-score" placeholder="0" value="${awayVal}" step="1" min="0" ${!isUnlocked ? 'disabled' : ''}>
-                    </div>
+                    <div class="score"><i class="fas fa-trophy"></i> СЧЕТ: ${scoreDisplay}</div>
                     <div class="forecast-title"><i class="fas fa-chart-simple"></i> ПРОГНОЗЫ ЭКСПЕРТОВ</div>
                     <div class="experts-grid">
-                        ${experts.map((exp, idx) => `<div class="expert-pred"><div class="expert-name">${exp}</div><div class="expert-score">${predictions[idx]}</div></div>`).join('')}
+                        ${experts.map((exp, idx) => `<div class="expert-pred"><div>${exp}</div><div>${m.predictions[idx]}</div></div>`).join('')}
                     </div>
                 </div>
             `;
-        });
-        container.innerHTML = html;
-        
-        if (isUnlocked) {
-            document.querySelectorAll('.match-card').forEach(card => {
-                const id = parseInt(card.getAttribute('data-match-id'));
-                const homeInput = card.querySelector('.home-score');
-                const awayInput = card.querySelector('.away-score');
-                const update = () => {
-                    const hv = homeInput.value === '' ? undefined : parseInt(homeInput.value);
-                    const av = awayInput.value === '' ? undefined : parseInt(awayInput.value);
-                    if (hv !== undefined && av !== undefined && !isNaN(hv) && !isNaN(av)) {
-                        scores[id] = { home: hv, away: av };
-                    } else {
-                        scores[id] = null;
-                    }
-                    // автосохранение в localStorage
-                    localStorage.setItem('wc2026_scores', JSON.stringify(scores));
-                    renderExpertsRank();
-                    const grp = getCurrentGroup();
-                    if (grp !== 'all') renderStandings(grp);
-                };
-                homeInput.addEventListener('input', update);
-                awayInput.addEventListener('input', update);
-            });
         }
+        document.getElementById('matchesContainer').innerHTML = html;
     }
-    
-    function resetAllScores() {
-        if (!isUnlocked) { alert("Редактирование заблокировано. Введите пароль."); return; }
-        for (let i = 0; i < matches.length; i++) scores[i] = null;
-        localStorage.removeItem('wc2026_scores');
-        const grp = getCurrentGroup();
-        renderMatches(grp);
-        renderExpertsRank();
-        if (grp !== 'all') renderStandings(grp);
-    }
-    
-    function unlockEditor() {
-        const pwd = prompt("Введите пароль для редактирования счетов:");
-        if (pwd === EDIT_PASSWORD) {
-            isUnlocked = true;
-            document.getElementById('unlockBtn').innerHTML = '<i class="fas fa-check"></i> Режим активен';
-            document.getElementById('unlockBtn').disabled = true;
-            document.getElementById('lockStatus').innerHTML = '(разблокировано)';
-            const grp = getCurrentGroup();
-            renderMatches(grp);
-        } else if (pwd !== null) alert("Неверный пароль!");
-    }
-    
-    // Загрузка сохранённых счетов и инициализация
-    function loadScoresFromLocal() {
-        const saved = localStorage.getItem('wc2026_scores');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                for (let id in parsed) scores[id] = parsed[id];
-            } catch(e) {}
-        }
-    }
-    
-    window.onload = async () => {
-        await loadAndBuild();
-        loadScoresFromLocal();
-        // если после загрузки CSV какие-то счета не определены, оставить null
-        renderExpertsRank();
-        renderStandings(getCurrentGroup());
-        renderMatches(getCurrentGroup());
-        document.getElementById('unlockBtn').addEventListener('click', unlockEditor);
-        document.getElementById('resetScoresBtn').addEventListener('click', resetAllScores);
-    };
+
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('refreshBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+        await loadFromXLSX();
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Обновить данные';
+    });
+
+    loadFromXLSX();
 </script>
 </body>
 </html>
