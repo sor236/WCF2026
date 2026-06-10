@@ -6,7 +6,14 @@
     <title>ЧМ 2026 · Рейтинг экспертов (XLSX)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Подключаем библиотеку для работы с Excel с двумя CDN на случай блокировки -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script>
+        // fallback если первый не загрузился
+        if (typeof XLSX === 'undefined') {
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js"><\/script>');
+        }
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -69,7 +76,7 @@
 <div class="app">
     <div class="hero">
         <h1><i class="fas fa-futbol"></i> ЧМ 2026 · Рейтинг экспертов</h1>
-        <div class="sub">Загрузка данных из WCF2026.xlsx (с автоматическим определением колонок)</div>
+        <div class="sub">Данные из WCF2026.xlsx (автоопределение колонок)</div>
     </div>
     <div id="debugPanel" class="debug"></div>
     <div id="expertsRankContainer" class="experts-rank"></div>
@@ -83,6 +90,19 @@
 </div>
 
 <script>
+    // Ждём загрузки библиотеки
+    let attempts = 0;
+    function waitForXLSX() {
+        if (typeof XLSX !== 'undefined') {
+            loadFromXLSX();
+        } else if (attempts < 10) {
+            attempts++;
+            setTimeout(waitForXLSX, 500);
+        } else {
+            document.getElementById('debugPanel').innerHTML = '❌ Библиотека XLSX не загрузилась. Проверьте интернет-соединение или используйте другой браузер.';
+        }
+    }
+
     const XLSX_FILE = 'WCF2026.xlsx';
     let matches = [];
     let experts = [];
@@ -90,7 +110,7 @@
 
     async function loadFromXLSX() {
         const debugDiv = document.getElementById('debugPanel');
-        debugDiv.innerHTML = 'Загрузка файла...';
+        debugDiv.innerHTML = 'Загрузка файла WCF2026.xlsx...';
         try {
             const response = await fetch(XLSX_FILE);
             if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден или недоступен`);
@@ -102,7 +122,7 @@
 
             if (rows.length < 3) throw new Error('Недостаточно строк (меньше 3)');
 
-            // Ищем строку с заголовками: она может быть не первой, ищем по ключевым словам
+            // Ищем строку с заголовками
             let headerRow = null;
             let dataStart = 0;
             for (let i = 0; i < Math.min(rows.length, 15); i++) {
@@ -117,7 +137,6 @@
                 }
             }
             if (!headerRow) {
-                // если не нашли, берём первую непустую строку как заголовок
                 for (let i = 0; i < rows.length; i++) {
                     if (rows[i] && rows[i].length > 0 && rows[i].some(c => c && c.toString().trim())) {
                         headerRow = rows[i];
@@ -129,7 +148,6 @@
             if (!headerRow) throw new Error('Не удалось найти строку с заголовками');
             debugDiv.innerHTML += `\nЗаголовки: ${headerRow.join(' | ')}`;
 
-            // Функция поиска индекса колонки по возможным названиям
             function findCol(keywords) {
                 for (let i = 0; i < headerRow.length; i++) {
                     const cell = (headerRow[i] || '').toString().toLowerCase();
@@ -155,7 +173,6 @@
             - счёт хозяев: ${scoreHomeCol !== -1 ? `индекс ${scoreHomeCol} (${headerRow[scoreHomeCol]})` : '❌ не найдена'}
             - счёт гостей: ${scoreAwayCol !== -1 ? `индекс ${scoreAwayCol} (${headerRow[scoreAwayCol]})` : '❌ не найдена'}`;
 
-            // Эксперты (имена)
             const expertNames = ['антон', 'георгий', 'герман', 'олег', 'тимур', 'юрий'];
             let expertHomeCols = [];
             let expertAwayCols = [];
@@ -169,7 +186,6 @@
                     }
                 }
                 if (hIdx === -1 && aIdx === -1) {
-                    // одна колонка
                     for (let i = 0; i < headerRow.length; i++) {
                         const cell = (headerRow[i] || '').toString().toLowerCase();
                         if (cell === name || (cell.includes(name) && (cell.includes('прогноз') || cell.includes('pred')))) {
@@ -186,13 +202,12 @@
             debugDiv.innerHTML += `\n\nЭксперты: ${experts.join(', ')}`;
             debugDiv.innerHTML += `\nКолонки экспертов (home/away): ${expertHomeCols.map((v,i) => `${experts[i]}: ${v} / ${expertAwayCols[i]}`).join(', ')}`;
 
-            // Сбор данных
             matches = [];
             for (let i = dataStart; i < rows.length; i++) {
                 const row = rows[i];
                 if (!row || row.length === 0) continue;
                 const group = groupCol !== -1 ? (row[groupCol] || '').toString().trim() : '';
-                if (group === '') continue; // пустая строка
+                if (group === '') continue;
                 const dateRaw = dateCol !== -1 ? row[dateCol] : '';
                 let date = '';
                 if (dateRaw && typeof dateRaw === 'number') {
@@ -225,14 +240,14 @@
                 matches.push({ group, date, time, home, away, score, predictions });
             }
             debugDiv.innerHTML += `\n\nЗагружено матчей: ${matches.length}`;
-            if (matches.length === 0) throw new Error('Не найдено строк с данными (нет заполненных групп)');
+            if (matches.length === 0) throw new Error('Не найдено строк с данными');
 
             buildFilterButtons();
             renderExpertsRank();
             renderStandings(currentGroup);
             renderMatches(currentGroup);
         } catch (err) {
-            debugDiv.innerHTML += `\n\n❌ ОШИБКА: ${err.message}\nПроверьте консоль браузера (F12).`;
+            debugDiv.innerHTML += `\n\n❌ ОШИБКА: ${err.message}\nПроверьте консоль (F12).`;
             console.error(err);
         }
     }
@@ -320,7 +335,7 @@
             html += `<tr><td class="team-name">${t.name}</td>
                       <td>${t.played}</td><td>${t.wins}</td><td>${t.draws}</td><td>${t.losses}</td>
                        <td>${t.gf}</td><td>${t.ga}</td><td><strong>${t.points}</strong></td>
-                    </table>`;
+                    </tr>`;
         });
         html += `</tbody></table></div>`;
         document.getElementById('standingsContainer').innerHTML = html;
@@ -366,7 +381,8 @@
         btn.innerHTML = '<i class="fas fa-sync-alt"></i> Обновить данные';
     });
 
-    loadFromXLSX();
+    // Старт после загрузки библиотеки
+    window.addEventListener('load', waitForXLSX);
 </script>
 </body>
 </html>
