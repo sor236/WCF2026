@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Тест скрипта</title></head>
+<body>
+<pre id="output">Загрузка...</pre>
+<script>
+fetch('https://script.google.com/macros/s/AKfycbyDSqsilJbzAyxNm-wo33g-B3bPS_zW5ID8YwplG-g71Ws31X04u1cCSWCxRDxJq1eF/exec')
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+  })
+  .catch(err => {
+    document.getElementById('output').textContent = 'Ошибка: ' + err;
+  });
+</script>
+</body>
+</html>
