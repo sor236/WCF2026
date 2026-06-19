@@ -235,13 +235,8 @@
             outline: none;
         }
         .score-inputs input:disabled {
-            opacity: 1;
-            background: transparent;
-        }
-        .score-inputs span {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #ffffff;
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .experts-grid {
@@ -284,6 +279,55 @@
         .expert-pred .pred-none   { color: #ef4444; }
         .expert-pred .pred-score-default { color: #e2e8f0; }
 
+        /* Панель редактирования счетов (не фиксированная) */
+        .edit-panel {
+            margin-top: 2rem;
+            margin-bottom: 3.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.8rem;
+            padding: 0.8rem;
+            background: rgba(0,0,0,0.4);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(45,212,191,0.3);
+            backdrop-filter: blur(8px);
+        }
+        .edit-btn {
+            background: rgba(20, 35, 33, 0.7);
+            border: 1px solid rgba(72, 187, 160, 0.4);
+            padding: 0.4rem 1.2rem;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #e2f2ef;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .edit-btn.unlock {
+            background: #ffaa33;
+            color: #05100f;
+        }
+        .edit-btn.save {
+            background: #2dd4bf;
+            color: #05100f;
+        }
+        .edit-btn.reset {
+            background: rgba(200, 60, 50, 0.9);
+            color: white;
+        }
+        .edit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .edit-status {
+            color: #b6e6e0;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         .footer-note { display: none; }
 
         @media (max-width: 700px) {
@@ -299,6 +343,8 @@
             .expert-pred .pred-score { font-size: 0.7rem; }
             .bottom-btn, .bottom-link { font-size: 0.7rem; padding: 0.3rem 0.8rem; }
             .bottom-link-right { margin-left: 0; }
+            .edit-panel { gap: 0.5rem; padding: 0.5rem; }
+            .edit-btn { font-size: 0.7rem; padding: 0.3rem 0.8rem; }
         }
     </style>
 </head>
@@ -317,16 +363,27 @@
     <div id="expertsRankContainer" class="experts-rank"></div>
     <div id="standingsContainer" class="standings"></div>
     <div class="matches-grid" id="matchesContainer"></div>
+
+    <!-- Панель редактирования счетов (внизу страницы, не фиксированная) -->
+    <div class="edit-panel" id="editPanel">
+        <button id="unlockBtn" class="edit-btn unlock"><i class="fas fa-lock"></i> Ввести пароль</button>
+        <button id="saveBtn" class="edit-btn save" disabled><i class="fas fa-save"></i> Сохранить счета</button>
+        <button id="resetBtn" class="edit-btn reset" disabled><i class="fas fa-undo-alt"></i> Сбросить счета</button>
+        <span id="editStatus" class="edit-status">(заблокировано)</span>
+    </div>
 </div>
 
 <div class="bottom-panel" id="bottomPanel"></div>
 
 <script>
-    // ===================================================================
-    // ЕДИНЫЙ МАССИВ ВСЕХ 72 МАТЧЕЙ (явно перечислены все поля)
-    // ===================================================================
+    const EDIT_PASSWORD = "CXZaq1!";
+    let isUnlocked = false;
+
+    // ВСЕ ДАННЫЕ ВСТРОЕНЫ (матчи, счета, прогнозы)
+    const matchList = [];
+
+    // Матчи 1-24 с прогнозами и счетами
     const matchesData = [
-        // 1-24 с прогнозами и счетами
         { id:1, group:"A", date:"11.06.2026", time:"22:00", home:"Мексика", away:"ЮАР", homeScore:2, awayScore:0,
           pred:["3:1","2:1","3:1","2:0","2:0","3:0"] },
         { id:2, group:"A", date:"12.06.2026", time:"05:00", home:"Южная Корея", away:"Чехия", homeScore:2, awayScore:1,
@@ -374,88 +431,117 @@
         { id:23, group:"L", date:"18.06.2026", time:"02:00", home:"Гана", away:"Панама", homeScore:1, awayScore:0,
           pred:["2:2","2:0","2:2","2:1","2:1","2:2"] },
         { id:24, group:"K", date:"18.06.2026", time:"05:00", home:"Узбекистан", away:"Колумбия", homeScore:1, awayScore:3,
-          pred:["1:3","1:2","0:4","1:2","0:2","0:2"] },
-        // 25-44 с прогнозами, счёт только для 25
-        { id:25, group:"A", date:"18.06.2026", time:"19:00", home:"Чехия", away:"ЮАР", homeScore:1, awayScore:1,
-          pred:["1:1","1:2","2:1","2:1","1:1","1:2"] },
-        { id:26, group:"B", date:"18.06.2026", time:"22:00", home:"Швейцария", away:"Босния и Герцеговина", homeScore:4, awayScore:1,
-          pred:["2:1","2:0","2:1","2:1","1:1","0:0"] },
-        { id:27, group:"B", date:"19.06.2026", time:"01:00", home:"Канада", away:"Катар", homeScore:null, awayScore:null,
-          pred:["3:0","1:2","2:0","2:1","3:1","2:1"] },
-        { id:28, group:"A", date:"19.06.2026", time:"04:00", home:"Мексика", away:"Южная Корея", homeScore:null, awayScore:null,
-          pred:["2:1","2:0","1:1","2:2","2:1","2:2"] },
-        { id:29, group:"D", date:"19.06.2026", time:"22:00", home:"США", away:"Австралия", homeScore:null, awayScore:null,
-          pred:["3:1","2:3","2:0","2:0","2:0","3:0"] },
-        { id:30, group:"C", date:"20.06.2026", time:"01:00", home:"Шотландия", away:"Марокко", homeScore:null, awayScore:null,
-          pred:["1:3","2:0","0:2","1:2","1:1","1:0"] },
-        { id:31, group:"C", date:"20.06.2026", time:"04:00", home:"Бразилия", away:"Гаити", homeScore:null, awayScore:null,
-          pred:["3:0","3:0","4:0","5:0","4:0","6:0"] },
-        { id:32, group:"D", date:"20.06.2026", time:"07:00", home:"Турция", away:"Парагвай", homeScore:null, awayScore:null,
-          pred:["2:1","1:2","2:1","1:1","1:1","2:0"] },
-        { id:33, group:"F", date:"20.06.2026", time:"20:00", home:"Нидерланды", away:"Швеция", homeScore:null, awayScore:null,
-          pred:["2:0","3:1","3:2","2:1","2:2","3:1"] },
-        { id:34, group:"E", date:"20.06.2026", time:"23:00", home:"Германия", away:"Кот-д’Ивуар", homeScore:null, awayScore:null,
-          pred:["3:0","3:1","3:1","3:1","3:1","2:1"] },
-        { id:35, group:"E", date:"21.06.2026", time:"03:00", home:"Эквадор", away:"Кюрасао", homeScore:null, awayScore:null,
-          pred:["3:1","2:0","4:1","3:0","2:0","4:0"] },
-        { id:36, group:"F", date:"21.06.2026", time:"07:00", home:"Тунис", away:"Япония", homeScore:null, awayScore:null,
-          pred:["1:3","0:2","1:2","1:3","0:2","2:2"] },
-        { id:37, group:"H", date:"21.06.2026", time:"19:00", home:"Испания", away:"Саудовская Аравия", homeScore:null, awayScore:null,
-          pred:["3:0","3:0","4:0","2:0","3:0","4:0"] },
-        { id:38, group:"G", date:"21.06.2026", time:"22:00", home:"Бельгия", away:"Иран", homeScore:null, awayScore:null,
-          pred:["2:0","3:1","3:1","2:1","2:0","3:1"] },
-        { id:39, group:"H", date:"22.06.2026", time:"01:00", home:"Уругвай", away:"Кабо-Верде", homeScore:null, awayScore:null,
-          pred:["2:1","3:0","1:1","2:0","1:0","4:0"] },
-        { id:40, group:"G", date:"22.06.2026", time:"04:00", home:"Новая Зеландия", away:"Египет", homeScore:null, awayScore:null,
-          pred:["0:2","0:2","0:3","1:2","0:1","3:1"] },
-        { id:41, group:"J", date:"22.06.2026", time:"20:00", home:"Аргентина", away:"Австрия", homeScore:null, awayScore:null,
-          pred:["2:1","3:1","2:1","2:0","2:0","3:1"] },
-        { id:42, group:"I", date:"23.06.2026", time:"00:00", home:"Франция", away:"Ирак", homeScore:null, awayScore:null,
-          pred:["3:0","5:0","5:0","4:0","3:0","4:0"] },
-        { id:43, group:"I", date:"23.06.2026", time:"03:00", home:"Норвегия", away:"Сенегал", homeScore:null, awayScore:null,
-          pred:["1:1","1:2","2:2","2:1","1:1","2:1"] },
-        { id:44, group:"J", date:"23.06.2026", time:"06:00", home:"Иордания", away:"Алжир", homeScore:null, awayScore:null,
-          pred:["1:1","1:1","1:1","0:1","1:2","1:1"] },
-        // 45-48 с прогнозами (без счетов)
-        { id:45, group:"K", date:"23.06.2026", time:"20:00", home:"Португалия", away:"Узбекистан", homeScore:null, awayScore:null,
-          pred:["3:1","3:1","3:1","3:1","3:1","3:0"] },
-        { id:46, group:"L", date:"23.06.2026", time:"23:00", home:"Англия", away:"Гана", homeScore:null, awayScore:null,
-          pred:["2:0","5:0","3:1","3:1","3:1","3:1"] },
-        { id:47, group:"L", date:"24.06.2026", time:"02:00", home:"Панама", away:"Хорватия", homeScore:null, awayScore:null,
-          pred:["1:2","0:3","1:2","1:2","1:2","0:4"] },
-        { id:48, group:"K", date:"24.06.2026", time:"05:00", home:"Колумбия", away:"ДР Конго", homeScore:null, awayScore:null,
-          pred:["3:1","3:2","2:1","2:0","1:1","2:2"] },
-        // 49-72 без прогнозов и без счетов
-        { id:49, group:"B", date:"24.06.2026", time:"22:00", home:"Канада", away:"Швейцария", homeScore:null, awayScore:null, pred:null },
-        { id:50, group:"B", date:"24.06.2026", time:"22:00", home:"Босния и Герцеговина", away:"Катар", homeScore:null, awayScore:null, pred:null },
-        { id:51, group:"C", date:"25.06.2026", time:"01:00", home:"Марокко", away:"Гаити", homeScore:null, awayScore:null, pred:null },
-        { id:52, group:"C", date:"25.06.2026", time:"01:00", home:"Шотландия", away:"Бразилия", homeScore:null, awayScore:null, pred:null },
-        { id:53, group:"A", date:"25.06.2026", time:"04:00", home:"Мексика", away:"Чехия", homeScore:null, awayScore:null, pred:null },
-        { id:54, group:"A", date:"25.06.2026", time:"04:00", home:"ЮАР", away:"Южная Корея", homeScore:null, awayScore:null, pred:null },
-        { id:55, group:"E", date:"25.06.2026", time:"23:00", home:"Эквадор", away:"Германия", homeScore:null, awayScore:null, pred:null },
-        { id:56, group:"E", date:"25.06.2026", time:"23:00", home:"Кюрасао", away:"Кот-д’Ивуар", homeScore:null, awayScore:null, pred:null },
-        { id:57, group:"F", date:"26.06.2026", time:"02:00", home:"Тунис", away:"Нидерланды", homeScore:null, awayScore:null, pred:null },
-        { id:58, group:"F", date:"26.06.2026", time:"02:00", home:"Япония", away:"Швеция", homeScore:null, awayScore:null, pred:null },
-        { id:59, group:"D", date:"26.06.2026", time:"05:00", home:"США", away:"Турция", homeScore:null, awayScore:null, pred:null },
-        { id:60, group:"D", date:"26.06.2026", time:"05:00", home:"Парагвай", away:"Австралия", homeScore:null, awayScore:null, pred:null },
-        { id:61, group:"I", date:"26.06.2026", time:"22:00", home:"Норвегия", away:"Франция", homeScore:null, awayScore:null, pred:null },
-        { id:62, group:"I", date:"26.06.2026", time:"22:00", home:"Сенегал", away:"Ирак", homeScore:null, awayScore:null, pred:null },
-        { id:63, group:"H", date:"27.06.2026", time:"03:00", home:"Уругвай", away:"Испания", homeScore:null, awayScore:null, pred:null },
-        { id:64, group:"H", date:"27.06.2026", time:"03:00", home:"Кабо-Верде", away:"Саудовская Аравия", homeScore:null, awayScore:null, pred:null },
-        { id:65, group:"G", date:"27.06.2026", time:"06:00", home:"Новая Зеландия", away:"Бельгия", homeScore:null, awayScore:null, pred:null },
-        { id:66, group:"G", date:"27.06.2026", time:"06:00", home:"Египет", away:"Иран", homeScore:null, awayScore:null, pred:null },
-        { id:67, group:"L", date:"28.06.2026", time:"00:00", home:"Панама", away:"Англия", homeScore:null, awayScore:null, pred:null },
-        { id:68, group:"L", date:"28.06.2026", time:"00:00", home:"Хорватия", away:"Гана", homeScore:null, awayScore:null, pred:null },
-        { id:69, group:"K", date:"28.06.2026", time:"02:30", home:"Колумбия", away:"Португалия", homeScore:null, awayScore:null, pred:null },
-        { id:70, group:"K", date:"28.06.2026", time:"02:30", home:"ДР Конго", away:"Узбекистан", homeScore:null, awayScore:null, pred:null },
-        { id:71, group:"J", date:"28.06.2026", time:"05:00", home:"Алжир", away:"Австрия", homeScore:null, awayScore:null, pred:null },
-        { id:72, group:"J", date:"28.06.2026", time:"05:00", home:"Иордания", away:"Аргентина", homeScore:null, awayScore:null, pred:null }
+          pred:["1:3","1:2","0:4","1:2","0:2","0:2"] }
     ];
 
-    // ===================================================================
-    // ИСПОЛЬЗУЕМ ЭТОТ МАССИВ КАК ОСНОВНОЙ
-    // ===================================================================
-    const matchList = matchesData;
+    for (let m of matchesData) {
+        matchList.push(m);
+    }
+
+    // Матчи 25-44 с прогнозами (без счетов, кроме 25, который добавим позже)
+    const newPredictions = {
+        25: { group:"A", date:"18.06.2026", time:"19:00", home:"Чехия", away:"ЮАР", pred:["1:1","1:2","2:1","2:1","1:1","1:2"] },
+        26: { group:"B", date:"18.06.2026", time:"22:00", home:"Швейцария", away:"Босния и Герцеговина", pred:["2:1","2:0","2:1","2:1","1:1","0:0"] },
+        27: { group:"B", date:"19.06.2026", time:"01:00", home:"Канада", away:"Катар", pred:["3:0","1:2","2:0","2:1","3:1","2:1"] },
+        28: { group:"A", date:"19.06.2026", time:"04:00", home:"Мексика", away:"Южная Корея", pred:["2:1","2:0","1:1","2:2","2:1","2:2"] },
+        29: { group:"D", date:"19.06.2026", time:"22:00", home:"США", away:"Австралия", pred:["3:1","2:3","2:0","2:0","2:0","3:0"] },
+        30: { group:"C", date:"20.06.2026", time:"01:00", home:"Шотландия", away:"Марокко", pred:["1:3","2:0","0:2","1:2","1:1","1:0"] },
+        31: { group:"C", date:"20.06.2026", time:"04:00", home:"Бразилия", away:"Гаити", pred:["3:0","3:0","4:0","5:0","4:0","6:0"] },
+        32: { group:"D", date:"20.06.2026", time:"07:00", home:"Турция", away:"Парагвай", pred:["2:1","1:2","2:1","1:1","1:1","2:0"] },
+        33: { group:"F", date:"20.06.2026", time:"20:00", home:"Нидерланды", away:"Швеция", pred:["2:0","3:1","3:2","2:1","2:2","3:1"] },
+        34: { group:"E", date:"20.06.2026", time:"23:00", home:"Германия", away:"Кот-д’Ивуар", pred:["3:0","3:1","3:1","3:1","3:1","2:1"] },
+        35: { group:"E", date:"21.06.2026", time:"03:00", home:"Эквадор", away:"Кюрасао", pred:["3:1","2:0","4:1","3:0","2:0","4:0"] },
+        36: { group:"F", date:"21.06.2026", time:"07:00", home:"Тунис", away:"Япония", pred:["1:3","0:2","1:2","1:3","0:2","2:2"] },
+        37: { group:"H", date:"21.06.2026", time:"19:00", home:"Испания", away:"Саудовская Аравия", pred:["3:0","3:0","4:0","2:0","3:0","4:0"] },
+        38: { group:"G", date:"21.06.2026", time:"22:00", home:"Бельгия", away:"Иран", pred:["2:0","3:1","3:1","2:1","2:0","3:1"] },
+        39: { group:"H", date:"22.06.2026", time:"01:00", home:"Уругвай", away:"Кабо-Верде", pred:["2:1","3:0","1:1","2:0","1:0","4:0"] },
+        40: { group:"G", date:"22.06.2026", time:"04:00", home:"Новая Зеландия", away:"Египет", pred:["0:2","0:2","0:3","1:2","0:1","3:1"] },
+        41: { group:"J", date:"22.06.2026", time:"20:00", home:"Аргентина", away:"Австрия", pred:["2:1","3:1","2:1","2:0","2:0","3:1"] },
+        42: { group:"I", date:"23.06.2026", time:"00:00", home:"Франция", away:"Ирак", pred:["3:0","5:0","5:0","4:0","3:0","4:0"] },
+        43: { group:"I", date:"23.06.2026", time:"03:00", home:"Норвегия", away:"Сенегал", pred:["1:1","1:2","2:2","2:1","1:1","2:1"] },
+        44: { group:"J", date:"23.06.2026", time:"06:00", home:"Иордания", away:"Алжир", pred:["1:1","1:1","1:1","0:1","1:2","1:1"] }
+    };
+
+    for (let id = 25; id <= 44; id++) {
+        const data = newPredictions[id];
+        matchList.push({
+            id: id,
+            group: data.group,
+            date: data.date,
+            time: data.time,
+            home: data.home,
+            away: data.away,
+            homeScore: null,
+            awayScore: null,
+            pred: data.pred
+        });
+    }
+
+    // Устанавливаем счёт для матча 25 (Чехия – ЮАР 1:1)
+    const match25 = matchList.find(m => m.id === 25);
+    if (match25) {
+        match25.homeScore = 1;
+        match25.awayScore = 1;
+    }
+
+    // Матчи 45-48 с прогнозами
+    const extraPredictions = {
+        45: { group:"K", date:"23.06.2026", time:"20:00", home:"Португалия", away:"Узбекистан", pred:["3:1","3:1","3:1","3:1","3:1","—"] },
+        46: { group:"L", date:"23.06.2026", time:"23:00", home:"Англия", away:"Гана", pred:["2:0","5:0","3:1","3:1","3:1","—"] },
+        47: { group:"L", date:"24.06.2026", time:"02:00", home:"Панама", away:"Хорватия", pred:["1:2","0:3","1:2","1:2","1:2","—"] },
+        48: { group:"K", date:"24.06.2026", time:"05:00", home:"Колумбия", away:"ДР Конго", pred:["3:1","3:2","2:1","2:0","1:1","—"] }
+    };
+
+    for (let id = 45; id <= 48; id++) {
+        const data = extraPredictions[id];
+        matchList.push({
+            id: id,
+            group: data.group,
+            date: data.date,
+            time: data.time,
+            home: data.home,
+            away: data.away,
+            homeScore: null,
+            awayScore: null,
+            pred: data.pred
+        });
+    }
+
+    // Матчи 49-72 (без прогнозов, без счетов)
+    const groupsMap = {
+        49:"B",50:"B",51:"C",52:"C",53:"A",54:"A",55:"E",56:"E",
+        57:"F",58:"F",59:"D",60:"D",61:"I",62:"I",63:"H",64:"H",65:"G",66:"G",67:"L",68:"L",
+        69:"K",70:"K",71:"J",72:"J"
+    };
+    const datesMap = {
+        49:"24.06.2026",50:"24.06.2026",51:"25.06.2026",52:"25.06.2026",53:"25.06.2026",54:"25.06.2026",
+        55:"25.06.2026",56:"25.06.2026",57:"26.06.2026",58:"26.06.2026",59:"26.06.2026",60:"26.06.2026",
+        61:"26.06.2026",62:"26.06.2026",63:"27.06.2026",64:"27.06.2026",65:"27.06.2026",66:"27.06.2026",
+        67:"28.06.2026",68:"28.06.2026",69:"28.06.2026",70:"28.06.2026",71:"28.06.2026",72:"28.06.2026"
+    };
+    const timesMap = {
+        49:"22:00",50:"22:00",51:"01:00",52:"01:00",53:"04:00",54:"04:00",
+        55:"23:00",56:"23:00",57:"02:00",58:"02:00",59:"05:00",60:"05:00",
+        61:"22:00",62:"22:00",63:"03:00",64:"03:00",65:"06:00",66:"06:00",
+        67:"00:00",68:"00:00",69:"02:30",70:"02:30",71:"05:00",72:"05:00"
+    };
+    const teamsMap = {
+        49:["Канада","Швейцария"],50:["Босния и Герцеговина","Катар"],51:["Марокко","Гаити"],52:["Шотландия","Бразилия"],
+        53:["Мексика","Чехия"],54:["ЮАР","Южная Корея"],55:["Эквадор","Германия"],56:["Кюрасао","Кот-д’Ивуар"],
+        57:["Тунис","Нидерланды"],58:["Япония","Швеция"],59:["США","Турция"],60:["Парагвай","Австралия"],
+        61:["Норвегия","Франция"],62:["Сенегал","Ирак"],63:["Уругвай","Испания"],64:["Кабо-Верде","Саудовская Аравия"],
+        65:["Новая Зеландия","Бельгия"],66:["Египет","Иран"],67:["Панама","Англия"],68:["Хорватия","Гана"],
+        69:["Колумбия","Португалия"],70:["ДР Конго","Узбекистан"],71:["Алжир","Австрия"],72:["Иордания","Аргентина"]
+    };
+
+    for (let i = 49; i <= 72; i++) {
+        matchList.push({
+            id: i, group: groupsMap[i], date: datesMap[i], time: timesMap[i],
+            home: teamsMap[i][0], away: teamsMap[i][1],
+            homeScore: null, awayScore: null, pred: null
+        });
+    }
+
     const experts = ["Антон", "Георгий", "Герман", "Олег", "Тимур", "Юрий"];
     let scores = {};
 
@@ -474,6 +560,77 @@
             matchList.forEach(m => {
                 scores[m.id] = (m.homeScore !== null && m.awayScore !== null) ? { home: m.homeScore, away: m.awayScore } : null;
             });
+        }
+    }
+
+    function saveScoresToLocalStorage() {
+        const toSave = {};
+        for (let id in scores) {
+            if (scores[id] !== null) toSave[id] = scores[id];
+        }
+        localStorage.setItem("wc2026_scores", JSON.stringify(toSave));
+
+        // Показываем сообщение
+        const msg = document.createElement("div");
+        msg.textContent = "✅ Счета сохранены! Редактирование заблокировано.";
+        msg.style.position = "fixed";
+        msg.style.bottom = "80px";
+        msg.style.left = "50%";
+        msg.style.transform = "translateX(-50%)";
+        msg.style.background = "#2dd4bf";
+        msg.style.color = "#05100f";
+        msg.style.padding = "0.3rem 1rem";
+        msg.style.borderRadius = "40px";
+        msg.style.zIndex = "200";
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 2500);
+
+        // Блокируем редактирование после сохранения
+        lockEditor();
+    }
+
+    // Блокировка редактирования
+    function lockEditor() {
+        isUnlocked = false;
+        const unlockBtn = document.getElementById('unlockBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const statusSpan = document.getElementById('editStatus');
+
+        unlockBtn.innerHTML = '<i class="fas fa-lock"></i> Ввести пароль';
+        unlockBtn.classList.add('unlock');
+        unlockBtn.disabled = false;
+        saveBtn.disabled = true;
+        resetBtn.disabled = true;
+        statusSpan.innerHTML = '(заблокировано)';
+        statusSpan.style.color = '#b6e6e0';
+
+        // Перерисовываем матчи с заблокированными полями
+        renderMatches();
+    }
+
+    // Разблокировка редактирования
+    function unlockEditor() {
+        const pwd = prompt("Введите пароль для редактирования счетов:");
+        if (pwd === EDIT_PASSWORD) {
+            isUnlocked = true;
+            const unlockBtn = document.getElementById('unlockBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const statusSpan = document.getElementById('editStatus');
+
+            unlockBtn.innerHTML = '<i class="fas fa-check"></i> Режим активен';
+            unlockBtn.classList.remove('unlock');
+            unlockBtn.disabled = true;
+            saveBtn.disabled = false;
+            resetBtn.disabled = false;
+            statusSpan.innerHTML = '(разблокировано)';
+            statusSpan.style.color = '#2dd4bf';
+
+            // Перерисовываем матчи с активными полями
+            renderMatches();
+        } else if (pwd !== null) {
+            alert("Неверный пароль! Доступ запрещён.");
         }
     }
 
@@ -636,9 +793,9 @@
                         <div class="team">${m.away} <i class="fas fa-shield-alt"></i></div>
                     </div>
                     <div class="score-inputs">
-                        <input type="number" class="home-score" value="${homeVal}" placeholder="0" disabled>
+                        <input type="number" class="home-score" value="${homeVal}" placeholder="0" step="1" min="0" ${!isUnlocked ? 'disabled' : ''}>
                         <span>:</span>
-                        <input type="number" class="away-score" value="${awayVal}" placeholder="0" disabled>
+                        <input type="number" class="away-score" value="${awayVal}" placeholder="0" step="1" min="0" ${!isUnlocked ? 'disabled' : ''}>
                     </div>
                     <div class="experts-grid">
                         ${experts.map((exp, idx) => {
@@ -664,6 +821,51 @@
         }
         document.getElementById('matchesContainer').innerHTML = html;
         updateTeamColors();
+
+        if (isUnlocked) {
+            document.querySelectorAll('.match-card').forEach(card => {
+                const id = parseInt(card.getAttribute('data-id'));
+                const homeInput = card.querySelector('.home-score');
+                const awayInput = card.querySelector('.away-score');
+                const update = () => {
+                    const hv = homeInput.value === '' ? undefined : parseInt(homeInput.value);
+                    const av = awayInput.value === '' ? undefined : parseInt(awayInput.value);
+                    if (hv !== undefined && av !== undefined && !isNaN(hv) && !isNaN(av)) {
+                        scores[id] = { home: hv, away: av };
+                    } else {
+                        scores[id] = null;
+                    }
+                    renderExpertsRank();
+                    const activeGroup = getActiveGroup();
+                    if (activeGroup !== 'all') renderStandings(activeGroup);
+                    else document.getElementById('standingsContainer').innerHTML = '';
+                    updateTeamColors();
+                };
+                homeInput.addEventListener('input', update);
+                awayInput.addEventListener('input', update);
+            });
+        }
+    }
+
+    function resetAllScores() {
+        if (!isUnlocked) {
+            alert("Редактирование заблокировано. Введите пароль.");
+            return;
+        }
+        matchList.forEach(m => { scores[m.id] = null; });
+        // Восстанавливаем исходные счета (если есть)
+        matchList.forEach(m => {
+            if (m.homeScore !== null && m.awayScore !== null) {
+                scores[m.id] = { home: m.homeScore, away: m.awayScore };
+            }
+        });
+        saveScoresToLocalStorage();
+        // После сброса тоже блокируем
+        lockEditor();
+        renderExpertsRank();
+        const activeGroup = getActiveGroup();
+        if (activeGroup !== 'all') renderStandings(activeGroup);
+        else document.getElementById('standingsContainer').innerHTML = '';
     }
 
     function buildBottomFilters() {
@@ -693,10 +895,19 @@
         renderStandings('all');
     }
 
+    // Инициализация
     loadScores();
     buildBottomFilters();
     renderExpertsRank();
     renderMatches();
+
+    // Кнопки редактирования
+    document.getElementById('unlockBtn').addEventListener('click', unlockEditor);
+    document.getElementById('saveBtn').addEventListener('click', () => {
+        if (!isUnlocked) { alert("Редактирование заблокировано. Введите пароль."); return; }
+        saveScoresToLocalStorage(); // сохраняет и блокирует
+    });
+    document.getElementById('resetBtn').addEventListener('click', resetAllScores);
 </script>
 </body>
 </html>
