@@ -675,6 +675,8 @@
 
         let html = `<button class="bottom-btn active" data-group="all">🌍 Все группы</button>`;
         html += groups.map(g => `<button class="bottom-btn" data-group="${g}">Группа ${g}</button>`).join('');
+        // Новая кнопка "Общая таблица" перед "Общая таблица Google"
+        html += `<a href="https://sor236.github.io/WCF2026/View_18.html" target="_blank" class="bottom-link"><i class="fas fa-table"></i>Общая таблица</a>`;
         html += `<a href="${googleLink}" target="_blank" class="bottom-link bottom-link-right"><i class="fab fa-google"></i>Общая таблица Google</a>`;
         html += `<a href="${yandexLink}" target="_blank" class="bottom-link"><i class="fab fa-yandex"></i>Общая таблица Яндекс</a>`;
 
