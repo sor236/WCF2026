@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Таблица матчей — прогнозы экспертов (72 матча)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700&display=swap" rel="stylesheet">
+    <title>⚽ Таблица матчей — прогнозы экспертов (72 матча)</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -19,7 +20,6 @@
         .container {
             max-width: 100%;
             width: 100%;
-            overflow-x: auto;
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(8px);
             border-radius: 20px;
@@ -46,6 +46,11 @@
             border-radius: 30px;
             color: #b6e6e0;
         }
+        .table-scroll {
+            overflow: auto;
+            max-height: 80vh;
+            border-radius: 12px;
+        }
         table {
             border-collapse: collapse;
             width: 100%;
@@ -59,13 +64,25 @@
             text-align: center;
             white-space: nowrap;
         }
-        th {
-            background: rgba(45, 212, 191, 0.2);
-            font-weight: 600;
-            color: #e2f2ef;
+        /* Закрепление строк с НЕПРОЗРАЧНЫМ фоном */
+        .header-row-main th,
+        .header-row-sub th {
+            background: #0a1f1e !important; /* полностью непрозрачный фон */
             position: sticky;
+            z-index: 10;
+        }
+        .header-row-main th {
             top: 0;
-            z-index: 2;
+            z-index: 11;
+        }
+        .header-row-sub th {
+            top: 0; /* будет переопределено через JS для второй строки */
+            z-index: 10;
+        }
+        /* Убираем лишние фоны у дочерних элементов, чтобы не перекрывали */
+        .expert-header-main,
+        .expert-header-sub {
+            background: transparent !important;
         }
         .team-cell {
             text-align: left;
@@ -76,6 +93,9 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        .team-win { color: #4ade80; }
+        .team-loss { color: #f87171; }
+        .team-draw { color: #60a5fa; }
         .group-cell {
             font-weight: 700;
             color: #2dd4bf;
@@ -100,17 +120,27 @@
         tr:nth-child(even) { background: rgba(255,255,255,0.03); }
         tr:hover { background: rgba(45,212,191,0.08); }
         .expert-header-main {
-            background: rgba(45, 212, 191, 0.15);
             font-weight: 700;
             color: #b6e6e0;
             font-size: 0.8rem;
         }
         .expert-header-sub {
-            background: rgba(45, 212, 191, 0.08);
             font-weight: 600;
             color: #8ab4b0;
             font-size: 0.65rem;
         }
+        .expert-header-main .expert-name { font-weight: 700; }
+        .expert-header-main .expert-score {
+            font-weight: 800;
+            font-size: 0.8rem;
+            margin-left: 4px;
+        }
+        .rank-1 .expert-name { color: #22c55e; }
+        .rank-1 .expert-score { color: #22c55e; }
+        .rank-2 .expert-name { color: #3b82f6; }
+        .rank-2 .expert-score { color: #3b82f6; }
+        .rank-3 .expert-name { color: #eab308; }
+        .rank-3 .expert-score { color: #eab308; }
         .match-id {
             color: #8ab4b0;
             font-weight: 600;
@@ -129,17 +159,22 @@
             table { font-size: 0.6rem; min-width: 1200px; }
             th, td { padding: 4px 3px; }
             .team-cell { max-width: 100px; font-size: 0.7rem; }
+            .table-scroll { max-height: 70vh; }
         }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>
-        📊 Прогнозы экспертов
+        ⚽ Прогнозы экспертов
         <small>Групповой этап · 72 матча</small>
     </h1>
-    <div id="tableWrapper"></div>
-    <div class="scroll-hint">← Прокручивайте таблицу горизонтально →</div>
+    <div id="tableWrapper">
+        <div class="table-scroll" id="tableScroll">
+            <!-- Таблица будет вставлена сюда -->
+        </div>
+    </div>
+    <div class="scroll-hint">← Прокручивайте таблицу горизонтально и вертикально →</div>
 </div>
 
 <script>
@@ -293,9 +328,34 @@
     }
 
     function renderTable() {
-        const wrapper = document.getElementById('tableWrapper');
+        // --- Вычисляем суммы очков для каждого эксперта по сыгранным матчам ---
+        const expertScores = experts.map(() => 0);
+        matchesData.forEach(m => {
+            const realHome = m.homeScore;
+            const realAway = m.awayScore;
+            const isPlayed = (realHome !== null && realHome !== undefined && realAway !== null && realAway !== undefined);
+            if (!isPlayed) return;
+            if (!m.pred) return;
+            m.pred.forEach((pred, idx) => {
+                const pts = getPoints(pred, realHome, realAway);
+                expertScores[idx] += pts;
+            });
+        });
+
+        // Сортируем экспертов по убыванию очков для определения мест
+        const sorted = experts.map((name, idx) => ({ name, idx, score: expertScores[idx] }));
+        sorted.sort((a, b) => b.score - a.score);
+
+        // Присваиваем ранги
+        const rankMap = {};
+        sorted.forEach((item, rank) => {
+            rankMap[item.idx] = rank + 1;
+        });
+
+        const scrollDiv = document.getElementById('tableScroll');
         let html = '<table><thead>';
-        html += '<tr>';
+        // Первая строка заголовка
+        html += '<tr class="header-row-main">';
         html += '<th rowspan="2">#</th>';
         html += '<th rowspan="2">Гр.</th>';
         html += '<th rowspan="2">Время</th>';
@@ -303,11 +363,22 @@
         html += '<th rowspan="2">Команда 1</th>';
         html += '<th rowspan="2">Команда 2</th>';
         html += '<th rowspan="2">Счёт</th>';
-        experts.forEach(exp => {
-            html += `<th colspan="2" class="expert-header-main">${exp}</th>`;
+        experts.forEach((exp, idx) => {
+            const rank = rankMap[idx] || 0;
+            let rankClass = '';
+            if (rank === 1) rankClass = 'rank-1';
+            else if (rank === 2) rankClass = 'rank-2';
+            else if (rank === 3) rankClass = 'rank-3';
+            const total = expertScores[idx];
+            html += `<th colspan="2" class="expert-header-main ${rankClass}">
+                        <span class="expert-name">${exp}</span>
+                        <span class="expert-score">(${total})</span>
+                     </th>`;
         });
         html += '</tr>';
-        html += '<tr>';
+
+        // Вторая строка заголовка – подзаголовки "прогноз" и "очки"
+        html += '<tr class="header-row-sub">';
         experts.forEach(() => {
             html += `<th class="expert-header-sub">прогноз</th>`;
             html += `<th class="expert-header-sub">очки</th>`;
@@ -315,6 +386,7 @@
         html += '</tr>';
         html += '</thead><tbody>';
 
+        // Данные
         matchesData.forEach(m => {
             const realHome = m.homeScore;
             const realAway = m.awayScore;
@@ -324,8 +396,10 @@
             html += `<td class="group-cell">${m.group}</td>`;
             html += `<td>${m.time}</td>`;
             html += `<td>${m.date}</td>`;
-            html += `<td class="team-cell" title="${m.home}">${m.home}</td>`;
-            html += `<td class="team-cell" title="${m.away}">${m.away}</td>`;
+            const homeClass = isPlayed ? (realHome > realAway ? 'team-win' : (realHome < realAway ? 'team-loss' : 'team-draw')) : '';
+            const awayClass = isPlayed ? (realAway > realHome ? 'team-win' : (realAway < realHome ? 'team-loss' : 'team-draw')) : '';
+            html += `<td class="team-cell ${homeClass}" title="${m.home}">${m.home}</td>`;
+            html += `<td class="team-cell ${awayClass}" title="${m.away}">${m.away}</td>`;
             if (isPlayed) {
                 html += `<td class="score-cell">${realHome}:${realAway}</td>`;
             } else {
@@ -355,7 +429,27 @@
         });
 
         html += '</tbody></table>';
-        wrapper.innerHTML = html;
+        scrollDiv.innerHTML = html;
+
+        // ===== ЗАКРЕПЛЕНИЕ ШАПКИ: вычисляем высоту первой строки и задаём top для второй =====
+        const table = scrollDiv.querySelector('table');
+        if (table) {
+            const mainRow = table.querySelector('.header-row-main');
+            const subRow = table.querySelector('.header-row-sub');
+            if (mainRow && subRow) {
+                const mainHeight = mainRow.offsetHeight;
+                // Устанавливаем top для второй строки
+                const subCells = subRow.querySelectorAll('th');
+                subCells.forEach(cell => {
+                    cell.style.top = mainHeight + 'px';
+                });
+                // Для первой строки top = 0 (уже по умолчанию, но продублируем)
+                const mainCells = mainRow.querySelectorAll('th');
+                mainCells.forEach(cell => {
+                    cell.style.top = '0px';
+                });
+            }
+        }
     }
 
     renderTable();
