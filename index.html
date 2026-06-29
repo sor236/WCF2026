@@ -381,7 +381,7 @@
 
 <script>
     // ===================================================================
-    // БАЗОВЫЙ МАССИВ МАТЧЕЙ (1–72) — скопирован из предыдущей версии
+    // БАЗОВЫЙ МАССИВ МАТЧЕЙ (1–72)
     // ===================================================================
     const matchesData = [
         // 1-24
@@ -536,7 +536,7 @@
     ];
 
     // ===================================================================
-    // ДОПОЛНИТЕЛЬНЫЕ МАТЧИ (73–104) ИЗ НОВОГО CSV
+    // ДОПОЛНИТЕЛЬНЫЕ МАТЧИ (73–104)
     // ===================================================================
     const extraMatches = [
         // 73-88 (1/16 финала)
@@ -573,8 +573,8 @@
         { id:88, group:"1/16", date:"04.07.2026", time:"04:30", home:"Колумбия", away:"Гана", homeScore:null, awayScore:null,
           pred:["2:1","1:0","2:0","2:1","2:1","2:0"] },
 
-        // 89-96 (1/8 финала) — победители пока неизвестны
-        { id:89, group:"1/8", date:"04.07.2026", time:"20:00", home:"Победитель 76", away:"Победитель 73", homeScore:null, awayScore:null, pred:null },
+        // 89-96 (1/8 финала)
+        { id:89, group:"1/8", date:"04.07.2026", time:"20:00", home:"Канада", away:"Победитель 76", homeScore:null, awayScore:null, pred:null },
         { id:90, group:"1/8", date:"05.07.2026", time:"00:00", home:"Победитель 73", away:"Победитель 74", homeScore:null, awayScore:null, pred:null },
         { id:91, group:"1/8", date:"05.07.2026", time:"23:00", home:"Победитель 82", away:"Победитель 83", homeScore:null, awayScore:null, pred:null },
         { id:92, group:"1/8", date:"06.07.2026", time:"03:00", home:"Победитель 84", away:"Победитель 85", homeScore:null, awayScore:null, pred:null },
@@ -594,7 +594,7 @@
         { id:102, group:"1/2", date:"15.07.2026", time:"22:00", home:"Победитель 99", away:"Победитель 100", homeScore:null, awayScore:null, pred:null },
 
         // 103 (матч за 3 место)
-        { id:103, group:"3 место", date:"19.07.2026", time:"00:00", home:"Победитель 101", away:"Победитель 102", homeScore:null, awayScore:null, pred:null },
+        { id:103, group:"3 место", date:"19.07.2026", time:"00:00", home:"Проигравший 101", away:"Проигравший 102", homeScore:null, awayScore:null, pred:null },
 
         // 104 (финал)
         { id:104, group:"Финал", date:"19.07.2026", time:"22:00", home:"Победитель 101", away:"Победитель 102", homeScore:null, awayScore:null, pred:null }
@@ -604,7 +604,7 @@
     let matchList = matchesData.concat(extraMatches);
 
     // ===================================================================
-    // ОБНОВЛЕНИЯ: счета для 55–72 и прогнозы для 73–88 (уже в extra)
+    // ОБНОВЛЕНИЯ: счета для 55–72 и 74
     // ===================================================================
     const updates = {
         55: { homeScore:2, awayScore:1 },
@@ -624,10 +624,10 @@
         69: { homeScore:0, awayScore:0 },
         70: { homeScore:3, awayScore:1 },
         71: { homeScore:3, awayScore:3 },
-        72: { homeScore:1, awayScore:3 }
+        72: { homeScore:1, awayScore:3 },
+        74: { homeScore:2, awayScore:1 }
     };
 
-    // Применяем обновления к matchList
     Object.keys(updates).forEach(id => {
         const match = matchList.find(m => m.id === Number(id));
         if (match) {
@@ -638,7 +638,6 @@
     const experts = ["Антон", "Георгий", "Герман", "Олег", "Тимур", "Юрий"];
     let scores = {};
 
-    // Загрузка из localStorage
     function loadScores() {
         const saved = localStorage.getItem("wc2026_scores");
         if (saved) {
@@ -723,7 +722,6 @@
     }
 
     function computeStandings(group) {
-        // Только для групп A-L
         if (!/^[A-L]$/i.test(group)) return [];
         const groupMatches = matchList.filter(m => m.group === group);
         const teams = [...new Set(groupMatches.flatMap(m => [m.home, m.away]))].filter(t => t);
@@ -865,7 +863,6 @@
 
     function buildBottomFilters() {
         const groups = [...new Set(matchList.map(m => m.group))].filter(g => g);
-        // Сортируем: сначала буквы A-L, потом этапы в порядке 1/16, 1/8, 1/4, 1/2, 3 место, Финал
         const order = { 'A':1,'B':2,'C':3,'D':4,'E':5,'F':6,'G':7,'H':8,'I':9,'J':10,'K':11,'L':12,
                         '1/16':13, '1/8':14, '1/4':15, '1/2':16, '3 место':17, 'Финал':18 };
         groups.sort((a,b) => (order[a] || 99) - (order[b] || 99));
