@@ -299,6 +299,15 @@
             color: #ffffff;
         }
 
+        .winner-info {
+            text-align: center;
+            font-size: 0.7rem;
+            padding: 0.2rem;
+            background: rgba(45, 212, 191, 0.1);
+            border-radius: 0.4rem;
+            margin: 0.2rem 0.6rem;
+        }
+
         .experts-grid {
             display: flex;
             flex-wrap: nowrap;
@@ -357,6 +366,7 @@
             .match-card { border-radius: 1rem; }
             .card-header { font-size: 0.5rem; }
             .group-badge { font-size: 0.5rem; padding: 0.05rem 0.4rem; }
+            .winner-info { font-size: 0.6rem; }
         }
         @media (max-width: 380px) {
             .team { font-size: 0.75rem; }
@@ -542,11 +552,11 @@
         // 73-88 (1/16 финала)
         { id:73, group:"1/16", date:"28.06.2026", time:"22:00", home:"ЮАР", away:"Канада", homeScore:0, awayScore:1,
           pred:["1:2","1:2","1:3","1:2","1:2","1:2"] },
-        { id:74, group:"1/16", date:"29.06.2026", time:"20:00", home:"Бразилия", away:"Япония", homeScore:null, awayScore:null,
+        { id:74, group:"1/16", date:"29.06.2026", time:"20:00", home:"Бразилия", away:"Япония", homeScore:2, awayScore:1,
           pred:["2:0","3:1","2:1","2:1","3:1","3:1"] },
-        { id:75, group:"1/16", date:"29.06.2026", time:"23:30", home:"Германия", away:"Парагвай", homeScore:null, awayScore:null,
+        { id:75, group:"1/16", date:"29.06.2026", time:"23:30", home:"Германия", away:"Парагвай", homeScore:1, awayScore:2,
           pred:["2:0","3:0","2:0","2:1","2:0","3:1"] },
-        { id:76, group:"1/16", date:"30.06.2026", time:"04:00", home:"Нидерланды", away:"Марокко", homeScore:null, awayScore:null,
+        { id:76, group:"1/16", date:"30.06.2026", time:"04:00", home:"Нидерланды", away:"Марокко", homeScore:1, awayScore:2,
           pred:["0:2","1:2","3:2","3:2","2:1","3:2"] },
         { id:77, group:"1/16", date:"30.06.2026", time:"20:00", home:"Кот-д’Ивуар", away:"Норвегия", homeScore:null, awayScore:null,
           pred:["1:2","2:1","2:1","1:2","2:3","1:3"] },
@@ -573,15 +583,15 @@
         { id:88, group:"1/16", date:"04.07.2026", time:"04:30", home:"Колумбия", away:"Гана", homeScore:null, awayScore:null,
           pred:["2:1","1:0","2:0","2:1","2:1","2:0"] },
 
-        // 89-96 (1/8 финала)
-        { id:89, group:"1/8", date:"04.07.2026", time:"20:00", home:"Канада", away:"Победитель 76", homeScore:null, awayScore:null, pred:null },
-        { id:90, group:"1/8", date:"05.07.2026", time:"00:00", home:"Победитель 73", away:"Победитель 74", homeScore:null, awayScore:null, pred:null },
-        { id:91, group:"1/8", date:"05.07.2026", time:"23:00", home:"Победитель 82", away:"Победитель 83", homeScore:null, awayScore:null, pred:null },
-        { id:92, group:"1/8", date:"06.07.2026", time:"03:00", home:"Победитель 84", away:"Победитель 85", homeScore:null, awayScore:null, pred:null },
-        { id:93, group:"1/8", date:"06.07.2026", time:"22:00", home:"Победитель 77", away:"Победитель 78", homeScore:null, awayScore:null, pred:null },
-        { id:94, group:"1/8", date:"07.07.2026", time:"03:00", home:"Победитель 79", away:"Победитель 80", homeScore:null, awayScore:null, pred:null },
-        { id:95, group:"1/8", date:"07.07.2026", time:"19:00", home:"Победитель 85", away:"Победитель 86", homeScore:null, awayScore:null, pred:null },
-        { id:96, group:"1/8", date:"07.07.2026", time:"23:00", home:"Победитель 87", away:"Победитель 88", homeScore:null, awayScore:null, pred:null },
+        // 89-96 (1/8 финала) — обновлены пары
+        { id:89, group:"1/8", date:"04.07.2026", time:"20:00", home:"Канада", away:"Марокко", homeScore:null, awayScore:null, pred:null },
+        { id:90, group:"1/8", date:"05.07.2026", time:"00:00", home:"Парагвай", away:"Победитель 78", homeScore:null, awayScore:null, pred:null },
+        { id:91, group:"1/8", date:"05.07.2026", time:"23:00", home:"Бразилия", away:"Победитель 77", homeScore:null, awayScore:null, pred:null },
+        { id:92, group:"1/8", date:"06.07.2026", time:"03:00", home:"Победитель 79", away:"Победитель 80", homeScore:null, awayScore:null, pred:null },
+        { id:93, group:"1/8", date:"06.07.2026", time:"22:00", home:"Победитель 84", away:"Победитель 83", homeScore:null, awayScore:null, pred:null },
+        { id:94, group:"1/8", date:"07.07.2026", time:"03:00", home:"Победитель 82", away:"Победитель 81", homeScore:null, awayScore:null, pred:null },
+        { id:95, group:"1/8", date:"07.07.2026", time:"19:00", home:"Победитель 87", away:"Победитель 86", homeScore:null, awayScore:null, pred:null },
+        { id:96, group:"1/8", date:"07.07.2026", time:"23:00", home:"Победитель 85", away:"Победитель 88", homeScore:null, awayScore:null, pred:null },
 
         // 97-100 (1/4 финала)
         { id:97, group:"1/4", date:"09.07.2026", time:"23:00", home:"Победитель 89", away:"Победитель 90", homeScore:null, awayScore:null, pred:null },
@@ -604,7 +614,7 @@
     let matchList = matchesData.concat(extraMatches);
 
     // ===================================================================
-    // ОБНОВЛЕНИЯ: счета для 55–72 и 74
+    // ОБНОВЛЕНИЯ: счета для 55–72 (уже заданы в extraMatches для 73-76, но оставляем для старых)
     // ===================================================================
     const updates = {
         55: { homeScore:2, awayScore:1 },
@@ -625,7 +635,10 @@
         70: { homeScore:3, awayScore:1 },
         71: { homeScore:3, awayScore:3 },
         72: { homeScore:1, awayScore:3 },
-        74: { homeScore:2, awayScore:1 }
+        // 74,75,76 уже заданы в extraMatches, но для надёжности продублируем
+        74: { homeScore:2, awayScore:1 },
+        75: { homeScore:1, awayScore:2 },
+        76: { homeScore:1, awayScore:2 }
     };
 
     Object.keys(updates).forEach(id => {
@@ -819,6 +832,13 @@
             const matchNumber = String(m.id).padStart(2, '0');
             const groupLabel = m.group.length === 1 ? `Группа ${m.group}` : m.group;
 
+            // Показываем победителя только для 1/16 финала (так как там все уже сыграны)
+            let winnerHtml = '';
+            if (m.group === '1/16' && isPlayed && s.home !== s.away) {
+                const winner = s.home > s.away ? m.home : m.away;
+                winnerHtml = `<div class="winner-info">🏆 Победитель: <strong>${winner}</strong></div>`;
+            }
+
             html += `
                 <div class="match-card" data-id="${m.id}">
                     <div class="card-header">
@@ -835,6 +855,7 @@
                         <span>:</span>
                         <input type="number" class="away-score" value="${awayVal}" placeholder="0" disabled>
                     </div>
+                    ${winnerHtml}
                     <div class="experts-grid">
                         ${experts.map((exp, idx) => {
                             const predScore = pred[idx];
