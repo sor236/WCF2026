@@ -332,12 +332,13 @@
           pred:["2:0","3:0","2:0","2:1","2:0","3:1"] },
         { id:76, group:"1/16", date:"30.06.2026", time:"04:00", home:"Нидерланды", away:"Марокко", homeScore:1, awayScore:2,
           pred:["0:2","1:2","3:2","3:2","2:1","3:2"] },
-        { id:77, group:"1/16", date:"30.06.2026", time:"20:00", home:"Кот-д’Ивуар", away:"Норвегия", homeScore:null, awayScore:null,
+        { id:77, group:"1/16", date:"30.06.2026", time:"20:00", home:"Кот-д’Ивуар", away:"Норвегия", homeScore:1, awayScore:2,
           pred:["1:2","2:1","2:1","1:2","2:3","1:3"] },
-        { id:78, group:"1/16", date:"01.07.2026", time:"00:00", home:"Франция", away:"Швеция", homeScore:null, awayScore:null,
+        { id:78, group:"1/16", date:"01.07.2026", time:"00:00", home:"Франция", away:"Швеция", homeScore:3, awayScore:0,
           pred:["3:0","3:1","3:1","3:1","3:1","3:0"] },
-        { id:79, group:"1/16", date:"01.07.2026", time:"04:00", home:"Мексика", away:"Эквадор", homeScore:null, awayScore:null,
+        { id:79, group:"1/16", date:"01.07.2026", time:"04:00", home:"Мексика", away:"Эквадор", homeScore:2, awayScore:0,
           pred:["2:1","3:0","2:0","3:1","3:1","2:0"] },
+        // Остальные 1/16 без результатов
         { id:80, group:"1/16", date:"01.07.2026", time:"19:00", home:"Англия", away:"ДР Конго", homeScore:null, awayScore:null,
           pred:["2:0","2:0","2:1","2:0","2:0","2:1"] },
         { id:81, group:"1/16", date:"01.07.2026", time:"23:00", home:"Бельгия", away:"Сенегал", homeScore:null, awayScore:null,
@@ -356,14 +357,14 @@
           pred:["3:0","3:0","3:0","2:0","3:0","2:0"] },
         { id:88, group:"1/16", date:"04.07.2026", time:"04:30", home:"Колумбия", away:"Гана", homeScore:null, awayScore:null,
           pred:["2:1","1:0","2:0","2:1","2:1","2:0"] },
-        // ===== 1/8 финала (исправлено по расписанию) =====
+        // ===== 1/8 финала (обновлено: 90, 91, 92) =====
         { id:89, group:"1/8", date:"04.07.2026", time:"20:00", home:"Канада", away:"Марокко", homeScore:null, awayScore:null,
           pred:["—","—","—","—","—","—"] },
-        { id:90, group:"1/8", date:"05.07.2026", time:"00:00", home:"Парагвай", away:"Победитель 78", homeScore:null, awayScore:null,
+        { id:90, group:"1/8", date:"05.07.2026", time:"00:00", home:"Парагвай", away:"Франция", homeScore:null, awayScore:null,
           pred:["—","—","—","—","—","—"] },
-        { id:91, group:"1/8", date:"05.07.2026", time:"23:00", home:"Бразилия", away:"Победитель 77", homeScore:null, awayScore:null,
+        { id:91, group:"1/8", date:"05.07.2026", time:"23:00", home:"Бразилия", away:"Норвегия", homeScore:null, awayScore:null,
           pred:["—","—","—","—","—","—"] },
-        { id:92, group:"1/8", date:"06.07.2026", time:"03:00", home:"Победитель 79", away:"Победитель 80", homeScore:null, awayScore:null,
+        { id:92, group:"1/8", date:"06.07.2026", time:"03:00", home:"Мексика", away:"Победитель 80", homeScore:null, awayScore:null,
           pred:["—","—","—","—","—","—"] },
         { id:93, group:"1/8", date:"06.07.2026", time:"22:00", home:"Победитель 84", away:"Победитель 83", homeScore:null, awayScore:null,
           pred:["—","—","—","—","—","—"] },
@@ -494,17 +495,20 @@
 
             if (m.pred) {
                 m.pred.forEach((pred, idx) => {
-                    let points = 0;
-                    if (isPlayed) {
-                        points = getPoints(pred, realHome, realAway);
+                    // Для несыгранных матчей выводим "-" вместо очков
+                    if (!isPlayed) {
+                        html += `<td class="expert-pred">${pred}</td>`;
+                        html += `<td class="expert-points">—</td>`;
+                    } else {
+                        let points = getPoints(pred, realHome, realAway);
+                        let ptsClass = '';
+                        if (points === 3) ptsClass = 'points-3';
+                        else if (points === 2) ptsClass = 'points-2';
+                        else if (points === 1) ptsClass = 'points-1';
+                        else ptsClass = 'points-0';
+                        html += `<td class="expert-pred">${pred}</td>`;
+                        html += `<td class="expert-points ${ptsClass}">${points}</td>`;
                     }
-                    let ptsClass = '';
-                    if (points === 3) ptsClass = 'points-3';
-                    else if (points === 2) ptsClass = 'points-2';
-                    else if (points === 1) ptsClass = 'points-1';
-                    else ptsClass = 'points-0';
-                    html += `<td class="expert-pred">${pred}</td>`;
-                    html += `<td class="expert-points ${ptsClass}">${points}</td>`;
                 });
             } else {
                 experts.forEach(() => {
