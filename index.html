@@ -616,19 +616,19 @@
 
     function loadScores() {
         const saved = localStorage.getItem("wc2026_scores");
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                matchList.forEach(m => {
-                    if (parsed[m.id] !== undefined) scores[m.id] = parsed[m.id];
-                    else scores[m.id] = (m.homeScore !== null ? { home: m.homeScore, away: m.awayScore } : null);
-                });
-            } catch(e) {}
-        } else {
-            matchList.forEach(m => {
-                scores[m.id] = (m.homeScore !== null && m.awayScore !== null) ? { home: m.homeScore, away: m.awayScore } : null;
-            });
-        }
+        let parsed = saved ? JSON.parse(saved) : {};
+        // Для каждого матча: если в коде есть счёт (не null), используем его, иначе берём из localStorage (если есть)
+        matchList.forEach(m => {
+            if (m.homeScore !== null && m.awayScore !== null) {
+                scores[m.id] = { home: m.homeScore, away: m.awayScore };
+            } else if (parsed[m.id] !== undefined) {
+                scores[m.id] = parsed[m.id];
+            } else {
+                scores[m.id] = null;
+            }
+        });
+        // Сохраняем в localStorage актуальные счета (для будущих обновлений)
+        localStorage.setItem("wc2026_scores", JSON.stringify(scores));
     }
 
     function getPoints(predStr, realHome, realAway) {

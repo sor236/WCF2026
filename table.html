@@ -356,17 +356,15 @@
           pred:["3:0","3:0","3:0","2:0","3:0","2:0"] },
         { id:88, group:"1/16", date:"04.07.2026", time:"04:30", home:"Колумбия", away:"Гана", homeScore:1, awayScore:0,
           pred:["2:1","1:0","2:0","2:1","2:1","2:0"] },
-        // ===== 1/8 ФИНАЛА (обновлены прогнозы Антона) =====
+        // ===== 1/8 ФИНАЛА (с обновлёнными прогнозами Антона) =====
         { id:89, group:"1/8", date:"04.07.2026", time:"20:00", home:"Канада", away:"Марокко", homeScore:0, awayScore:3,
           pred:["1:2","2:3","1:2","1:2","1:2","1:2"] },
         { id:90, group:"1/8", date:"05.07.2026", time:"00:00", home:"Парагвай", away:"Франция", homeScore:0, awayScore:1,
           pred:["0:2","1:3","1:3","0:3","1:3","1:3"] },
-        // ===== ОБНОВЛЕНЫ РЕЗУЛЬТАТЫ 91 И 92 =====
         { id:91, group:"1/8", date:"05.07.2026", time:"23:00", home:"Бразилия", away:"Норвегия", homeScore:1, awayScore:2,
           pred:["2:0","2:1","2:1","2:1","2:1","1:2"] },
         { id:92, group:"1/8", date:"06.07.2026", time:"03:00", home:"Мексика", away:"Англия", homeScore:2, awayScore:3,
           pred:["1:2","2:1","2:1","1:2","2:1","2:1"] },
-        // Остальные 1/8 без результатов
         { id:93, group:"1/8", date:"06.07.2026", time:"22:00", home:"Португалия", away:"Испания", homeScore:null, awayScore:null,
           pred:["1:2","2:1","2:1","1:3","1:3","1:2"] },
         { id:94, group:"1/8", date:"07.07.2026", time:"03:00", home:"США", away:"Бельгия", homeScore:null, awayScore:null,
@@ -375,10 +373,9 @@
           pred:["2:0","3:1","3:1","3:1","2:1","2:0"] },
         { id:96, group:"1/8", date:"07.07.2026", time:"23:00", home:"Швейцария", away:"Колумбия", homeScore:null, awayScore:null,
           pred:["1:2","1:2","0:1","2:1","1:2","0:1"] },
-        // ===== 1/4 финала (обновлены пары: 97 и 98) =====
+        // ===== 1/4 финала (обновлены пары) =====
         { id:97, group:"1/4", date:"09.07.2026", time:"23:00", home:"Марокко", away:"Франция", homeScore:null, awayScore:null,
           pred:["—","—","—","—","—","—"] },
-        // Матч 98: Норвегия vs Англия
         { id:98, group:"1/4", date:"10.07.2026", time:"22:00", home:"Норвегия", away:"Англия", homeScore:null, awayScore:null,
           pred:["—","—","—","—","—","—"] },
         { id:99, group:"1/4", date:"12.07.2026", time:"00:00", home:"Победитель 93", away:"Победитель 94", homeScore:null, awayScore:null,
@@ -417,134 +414,147 @@
     }
 
     function renderTable() {
-        // --- Вычисляем суммы очков для каждого эксперта по сыгранным матчам ---
-        const expertScores = experts.map(() => 0);
-        matchesData.forEach(m => {
-            const realHome = m.homeScore;
-            const realAway = m.awayScore;
-            const isPlayed = (realHome !== null && realHome !== undefined && realAway !== null && realAway !== undefined);
-            if (!isPlayed) return;
-            if (!m.pred) return;
-            m.pred.forEach((pred, idx) => {
-                const pts = getPoints(pred, realHome, realAway);
-                expertScores[idx] += pts;
-            });
-        });
-
-        // Сортируем экспертов по убыванию очков для определения мест
-        const sorted = experts.map((name, idx) => ({ name, idx, score: expertScores[idx] }));
-        sorted.sort((a, b) => b.score - a.score);
-
-        // Присваиваем ранги
-        const rankMap = {};
-        sorted.forEach((item, rank) => {
-            rankMap[item.idx] = rank + 1;
-        });
-
-        const scrollDiv = document.getElementById('tableScroll');
-        let html = '<table><thead>';
-        // Первая строка заголовка
-        html += '<tr class="header-row-main">';
-        html += '<th rowspan="2">#</th>';
-        html += '<th rowspan="2">Гр.</th>';
-        html += '<th rowspan="2">Время</th>';
-        html += '<th rowspan="2">Дата</th>';
-        html += '<th rowspan="2">Команда 1</th>';
-        html += '<th rowspan="2">Команда 2</th>';
-        html += '<th rowspan="2">Счёт</th>';
-        experts.forEach((exp, idx) => {
-            const rank = rankMap[idx] || 0;
-            let rankClass = '';
-            if (rank === 1) rankClass = 'rank-1';
-            else if (rank === 2) rankClass = 'rank-2';
-            else if (rank === 3) rankClass = 'rank-3';
-            const total = expertScores[idx];
-            html += `<th colspan="2" class="expert-header-main ${rankClass}">
-                        <span class="expert-name">${exp}</span>
-                        <span class="expert-score">(${total})</span>
-                     </th>`;
-        });
-        html += '</tr>';
-
-        // Вторая строка заголовка – подзаголовки "прогноз" и "очки"
-        html += '<tr class="header-row-sub">';
-        experts.forEach(() => {
-            html += `<th class="expert-header-sub">прогноз</th>`;
-            html += `<th class="expert-header-sub">очки</th>`;
-        });
-        html += '</tr>';
-        html += '</thead><tbody>';
-
-        // Данные
-        matchesData.forEach(m => {
-            const realHome = m.homeScore;
-            const realAway = m.awayScore;
-            const isPlayed = (realHome !== null && realHome !== undefined && realAway !== null && realAway !== undefined);
-            html += `<tr>`;
-            html += `<td class="match-id">${m.id}</td>`;
-            html += `<td class="group-cell">${m.group}</td>`;
-            html += `<td>${m.time}</td>`;
-            html += `<td>${m.date}</td>`;
-            const homeClass = isPlayed ? (realHome > realAway ? 'team-win' : (realHome < realAway ? 'team-loss' : 'team-draw')) : '';
-            const awayClass = isPlayed ? (realAway > realHome ? 'team-win' : (realAway < realHome ? 'team-loss' : 'team-draw')) : '';
-            html += `<td class="team-cell ${homeClass}" title="${m.home}">${m.home}</td>`;
-            html += `<td class="team-cell ${awayClass}" title="${m.away}">${m.away}</td>`;
-            if (isPlayed) {
-                html += `<td class="score-cell">${realHome}:${realAway}</td>`;
-            } else {
-                html += `<td>—</td>`;
-            }
-
-            if (m.pred) {
+        try {
+            // --- Вычисляем суммы очков для каждого эксперта по сыгранным матчам ---
+            const expertScores = experts.map(() => 0);
+            matchesData.forEach(m => {
+                const realHome = m.homeScore;
+                const realAway = m.awayScore;
+                const isPlayed = (realHome !== null && realHome !== undefined && realAway !== null && realAway !== undefined);
+                if (!isPlayed) return;
+                if (!m.pred) return;
                 m.pred.forEach((pred, idx) => {
-                    // Для несыгранных матчей выводим "-" вместо очков
-                    if (!isPlayed) {
-                        html += `<td class="expert-pred">${pred}</td>`;
-                        html += `<td class="expert-points">—</td>`;
-                    } else {
-                        let points = getPoints(pred, realHome, realAway);
-                        let ptsClass = '';
-                        if (points === 3) ptsClass = 'points-3';
-                        else if (points === 2) ptsClass = 'points-2';
-                        else if (points === 1) ptsClass = 'points-1';
-                        else ptsClass = 'points-0';
-                        html += `<td class="expert-pred">${pred}</td>`;
-                        html += `<td class="expert-points ${ptsClass}">${points}</td>`;
-                    }
+                    const pts = getPoints(pred, realHome, realAway);
+                    expertScores[idx] += pts;
                 });
-            } else {
-                experts.forEach(() => {
-                    html += `<td>—</td><td>—</td>`;
-                });
+            });
+
+            // Сортируем экспертов по убыванию очков для определения мест
+            const sorted = experts.map((name, idx) => ({ name, idx, score: expertScores[idx] }));
+            sorted.sort((a, b) => b.score - a.score);
+
+            // Присваиваем ранги
+            const rankMap = {};
+            sorted.forEach((item, rank) => {
+                rankMap[item.idx] = rank + 1;
+            });
+
+            const scrollDiv = document.getElementById('tableScroll');
+            if (!scrollDiv) {
+                console.error('Элемент #tableScroll не найден');
+                return;
             }
+            let html = '<table><thead>';
+            // Первая строка заголовка
+            html += '<tr class="header-row-main">';
+            html += '<th rowspan="2">#</th>';
+            html += '<th rowspan="2">Гр.</th>';
+            html += '<th rowspan="2">Время</th>';
+            html += '<th rowspan="2">Дата</th>';
+            html += '<th rowspan="2">Команда 1</th>';
+            html += '<th rowspan="2">Команда 2</th>';
+            html += '<th rowspan="2">Счёт</th>';
+            experts.forEach((exp, idx) => {
+                const rank = rankMap[idx] || 0;
+                let rankClass = '';
+                if (rank === 1) rankClass = 'rank-1';
+                else if (rank === 2) rankClass = 'rank-2';
+                else if (rank === 3) rankClass = 'rank-3';
+                const total = expertScores[idx];
+                html += `<th colspan="2" class="expert-header-main ${rankClass}">
+                            <span class="expert-name">${exp}</span>
+                            <span class="expert-score">(${total})</span>
+                         </th>`;
+            });
             html += '</tr>';
-        });
 
-        html += '</tbody></table>';
-        scrollDiv.innerHTML = html;
+            // Вторая строка заголовка – подзаголовки "прогноз" и "очки"
+            html += '<tr class="header-row-sub">';
+            experts.forEach(() => {
+                html += `<th class="expert-header-sub">прогноз</th>`;
+                html += `<th class="expert-header-sub">очки</th>`;
+            });
+            html += '</tr>';
+            html += '</thead><tbody>';
 
-        // ===== ЗАКРЕПЛЕНИЕ ШАПКИ: вычисляем высоту первой строки и задаём top для второй =====
-        const table = scrollDiv.querySelector('table');
-        if (table) {
-            const mainRow = table.querySelector('.header-row-main');
-            const subRow = table.querySelector('.header-row-sub');
-            if (mainRow && subRow) {
-                const mainHeight = mainRow.offsetHeight;
-                // Устанавливаем top для второй строки
-                const subCells = subRow.querySelectorAll('th');
-                subCells.forEach(cell => {
-                    cell.style.top = mainHeight + 'px';
-                });
-                // Для первой строки top = 0 (уже по умолчанию, но продублируем)
-                const mainCells = mainRow.querySelectorAll('th');
-                mainCells.forEach(cell => {
-                    cell.style.top = '0px';
-                });
+            // Данные
+            matchesData.forEach(m => {
+                const realHome = m.homeScore;
+                const realAway = m.awayScore;
+                const isPlayed = (realHome !== null && realHome !== undefined && realAway !== null && realAway !== undefined);
+                html += `<tr>`;
+                html += `<td class="match-id">${m.id}</td>`;
+                html += `<td class="group-cell">${m.group}</td>`;
+                html += `<td>${m.time}</td>`;
+                html += `<td>${m.date}</td>`;
+                const homeClass = isPlayed ? (realHome > realAway ? 'team-win' : (realHome < realAway ? 'team-loss' : 'team-draw')) : '';
+                const awayClass = isPlayed ? (realAway > realHome ? 'team-win' : (realAway < realHome ? 'team-loss' : 'team-draw')) : '';
+                html += `<td class="team-cell ${homeClass}" title="${m.home}">${m.home}</td>`;
+                html += `<td class="team-cell ${awayClass}" title="${m.away}">${m.away}</td>`;
+                if (isPlayed) {
+                    html += `<td class="score-cell">${realHome}:${realAway}</td>`;
+                } else {
+                    html += `<td>—</td>`;
+                }
+
+                if (m.pred) {
+                    m.pred.forEach((pred, idx) => {
+                        // Для несыгранных матчей выводим "-" вместо очков
+                        if (!isPlayed) {
+                            html += `<td class="expert-pred">${pred}</td>`;
+                            html += `<td class="expert-points">—</td>`;
+                        } else {
+                            let points = getPoints(pred, realHome, realAway);
+                            let ptsClass = '';
+                            if (points === 3) ptsClass = 'points-3';
+                            else if (points === 2) ptsClass = 'points-2';
+                            else if (points === 1) ptsClass = 'points-1';
+                            else ptsClass = 'points-0';
+                            html += `<td class="expert-pred">${pred}</td>`;
+                            html += `<td class="expert-points ${ptsClass}">${points}</td>`;
+                        }
+                    });
+                } else {
+                    experts.forEach(() => {
+                        html += `<td>—</td><td>—</td>`;
+                    });
+                }
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            scrollDiv.innerHTML = html;
+
+            // ===== ЗАКРЕПЛЕНИЕ ШАПКИ: вычисляем высоту первой строки и задаём top для второй =====
+            const table = scrollDiv.querySelector('table');
+            if (table) {
+                const mainRow = table.querySelector('.header-row-main');
+                const subRow = table.querySelector('.header-row-sub');
+                if (mainRow && subRow) {
+                    const mainHeight = mainRow.offsetHeight;
+                    // Устанавливаем top для второй строки
+                    const subCells = subRow.querySelectorAll('th');
+                    subCells.forEach(cell => {
+                        cell.style.top = mainHeight + 'px';
+                    });
+                    // Для первой строки top = 0 (уже по умолчанию, но продублируем)
+                    const mainCells = mainRow.querySelectorAll('th');
+                    mainCells.forEach(cell => {
+                        cell.style.top = '0px';
+                    });
+                }
             }
+        } catch (e) {
+            console.error('Ошибка при рендеринге таблицы:', e);
         }
     }
 
-    renderTable();
+    // Гарантируем, что DOM загружен перед рендерингом
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderTable);
+    } else {
+        renderTable();
+    }
 </script>
 </body>
 </html>
