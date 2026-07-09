@@ -536,7 +536,7 @@
     ];
 
     // ===================================================================
-    // ДОПОЛНИТЕЛЬНЫЕ МАТЧИ (73–104)
+    // ДОПОЛНИТЕЛЬНЫЕ МАТЧИ (73–104) — ОБНОВЛЕНЫ СЧЕТА 93-96, ПАРЫ 1/4
     // ===================================================================
     const extraMatches = [
         // 73-88 (1/16 финала)
@@ -573,7 +573,7 @@
         { id:88, group:"1/16", date:"04.07.2026", time:"04:30", home:"Колумбия", away:"Гана", homeScore:1, awayScore:0,
           pred:["2:1","1:0","2:0","2:1","2:1","2:0"] },
 
-        // 89-96 (1/8 финала)
+        // 89-96 (1/8 финала) — СЧЕТА ДОБАВЛЕНЫ
         { id:89, group:"1/8", date:"04.07.2026", time:"20:00", home:"Канада", away:"Марокко", homeScore:0, awayScore:3,
           pred:["1:2","2:3","1:2","1:2","1:2","1:2"] },
         { id:90, group:"1/8", date:"05.07.2026", time:"00:00", home:"Парагвай", away:"Франция", homeScore:0, awayScore:1,
@@ -591,20 +591,20 @@
         { id:96, group:"1/8", date:"07.07.2026", time:"23:00", home:"Швейцария", away:"Колумбия", homeScore:1, awayScore:0,
           pred:["1:2","1:2","0:1","2:1","1:2","0:1"] },
 
-        // 97-100 (1/4 финала)
-        { id:97, group:"1/4", date:"09.07.2026", time:"23:00", home:"Марокко", away:"Франция", homeScore:null, awayScore:null, pred:null },
-        { id:98, group:"1/4", date:"10.07.2026", time:"22:00", home:"Победитель 93", away:"Победитель 94", homeScore:null, awayScore:null, pred:null },
-        { id:99, group:"1/4", date:"12.07.2026", time:"00:00", home:"Норвегия", away:"Англия", homeScore:null, awayScore:null, pred:null },
-        { id:100, group:"1/4", date:"12.07.2026", time:"04:00", home:"Победитель 95", away:"Победитель 96", homeScore:null, awayScore:null, pred:null },
+        // 97-100 (1/4 финала) — ПАРЫ УТОЧНЕНЫ
+        { id:97, group:"1/4", date:"09.07.2026", time:"23:00", home:"Франция", away:"Марокко", homeScore:null, awayScore:null,
+          pred:["1:0","2:0","2:1","1:0","2:0","2:1"] },
+        { id:98, group:"1/4", date:"10.07.2026", time:"22:00", home:"Испания", away:"Бельгия", homeScore:null, awayScore:null,
+          pred:["2:1","1:2","2:1","2:1","2:1","2:1"] },
+        { id:99, group:"1/4", date:"12.07.2026", time:"00:00", home:"Норвегия", away:"Англия", homeScore:null, awayScore:null,
+          pred:["0:1","2:1","1:2","1:2","2:1","2:1"] },
+        { id:100, group:"1/4", date:"12.07.2026", time:"04:00", home:"Аргентина", away:"Швейцария", homeScore:null, awayScore:null,
+          pred:["1:0","3:0","3:1","2:1","2:0","2:0"] },
 
-        // 101-102 (1/2 финала)
+        // 101-104 (полуфиналы, финал, матч за 3 место)
         { id:101, group:"1/2", date:"14.07.2026", time:"22:00", home:"Победитель 97", away:"Победитель 98", homeScore:null, awayScore:null, pred:null },
         { id:102, group:"1/2", date:"15.07.2026", time:"22:00", home:"Победитель 99", away:"Победитель 100", homeScore:null, awayScore:null, pred:null },
-
-        // 103 (матч за 3 место)
-        { id:103, group:"3 место", date:"19.07.2026", time:"00:00", home:"Проигравший 101", away:"Проигравший 102", homeScore:null, awayScore:null, pred:null },
-
-        // 104 (финал)
+        { id:103, group:"3 место", date:"19.07.2026", time:"00:00", home:"Победитель 101", away:"Победитель 102", homeScore:null, awayScore:null, pred:null },
         { id:104, group:"Финал", date:"19.07.2026", time:"22:00", home:"Победитель 101", away:"Победитель 102", homeScore:null, awayScore:null, pred:null }
     ];
 
@@ -627,7 +627,6 @@
                 scores[m.id] = null;
             }
         });
-        // Сохраняем в localStorage актуальные счета (для будущих обновлений)
         localStorage.setItem("wc2026_scores", JSON.stringify(scores));
     }
 
